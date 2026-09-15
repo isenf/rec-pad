@@ -1,0 +1,3 @@
+# Reconhecimento de Padrões
+
+
