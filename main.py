@@ -3,6 +3,7 @@
 import os
 import re
 import pandas as pd
+from utils.proba import prior_proba
 
 # %%
 
@@ -27,23 +28,23 @@ for specie in species:
 column_names = data[species[0]].columns
 
 # regex = r"\.0$|DELTA[1-5]$|^[^.]*$"
-regex = r"\.0$|^[^.]*$"
+regex = r"\.0$"
 pattern = re.compile(regex)
 
 # for column_name in column_names:
 filtered_cols = [c for c in column_names if re.search(pattern=pattern, string=c)]
-filtered_cols
+filtered_cols.append("CLASS")
 # %%
 
 data_filtered = {}
 
 for specie in species:
-    column_names = data[species].columns
-
     data_filtered[specie] = data[specie][filtered_cols]
-    print(data_filtered[specie].columns)
+    # print(data_filtered[specie].columns)
 
 # %%
-# formalize the sample space
+
+for specie in species:
+    print(specie, prior_proba(data_filtered[specie], "CLASS"), sep="\n", end="\n\n")
 
 # %%
