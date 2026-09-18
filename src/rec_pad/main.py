@@ -3,7 +3,7 @@
 import os
 import re
 import pandas as pd
-from utils.proba import prior_proba
+from src.rec_pad.utils.proba import prior_proba
 
 # %%
 
