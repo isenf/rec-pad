@@ -1,7 +1,18 @@
 import pandas as pd
 from pathlib import Path
 from matplotlib.figure import Figure
+from matplotlib.axes import Axes
 import os
+
+
+def _as_figure(
+    obj: Figure|Axes
+) -> Figure:
+    if isinstance(obj, Figure):
+        return obj
+    if isinstance(obj, Axes):
+        return obj.figure
+    raise TypeError("expected matplot's Figure or Axes, got", type(obj).__name__)
 
 
 def load_species(
@@ -30,6 +41,7 @@ def save_fig(
     file_name: str,
     dpi: int=400
 ) -> None:
+    fig = _as_figure(fig)
     path = _make_dir(path=path)
     fig.savefig(fname=f"{path}/{file_name}", dpi=dpi)
 
