@@ -101,4 +101,83 @@ for specie in species:
         title=f"Pair plot {specie}"
     )
 
+# %% 
+
+# prior probability
+for specie in species:
+    p_prior = proba.prior_proba(data[specie], col=class_col)
+    print(f"\n{specie} - Prior Probability")
+    for cls, p in p_prior.items():
+        print(f"{cls}: {p:.4f}")
+
 # %%
+
+# events probability
+# event 1
+event_1 = "`ASPL.0` > 2.0"
+for specie in species:
+    p_event = proba.event_proba(df=data[specie], event=event_1)
+    print(f"\n{specie} - {event_1} Probability")
+    for cls, p in p_event.items():
+        print(f"{cls}: {p:.4f}")
+
+# %%
+# event 2
+event_2 = "`RHO3.0` < 0.2"
+for specie in species:
+    p_event = proba.event_proba(df=data[specie], event=event_2)
+    print(f"\n{specie} - {event_2} Probability")
+    for cls, p in p_event.items():
+        print(f"{cls}: {p:.4f}")
+
+# %%
+# event 3:
+event_3 = "`ASS.0` >= 0.0"
+for specie in species:
+    p_event = proba.event_proba(df=data[specie], event=event_3)
+    print(f"\n{specie} - {event_3} Probability")
+    for cls, p in p_event.items():
+        print(f"{cls}: {p:.4f}")
+
+# %%
+
+# union probability
+# event 1 or event 2
+for specie in species:
+    p_union = proba.union_proba(df=data[specie], 
+                                cond1=event_1,
+                                cond2=event_2)
+    print(f"\n{specie} - {event_1} or {event_2} Probability")
+    for cls, p in p_union.items():
+        print(f"{cls}: {p:.4f}")
+
+# %%
+# event 1 or event 2
+for specie in species:
+    p_union = proba.union_proba(df=data[specie], 
+                                cond1=event_1,
+                                cond2=event_3)
+    print(f"\n{specie} - {event_1} or {event_3} Probability")
+    for cls, p in p_union.items():
+        print(f"{cls}: {p:.4f}")
+
+# %%
+
+# intersection probability
+for specie in species:
+    p_inter = proba.intersection_proba(df=data[specie], 
+                                       cond1=event_1,
+                                       cond2=event_2)
+    print(f"\n{specie} - {event_1} and {event_2} Probability")
+    for cls, p in p_inter.items():
+        print(f"{cls}: {p:.4f}")
+
+# %%
+# event 1 or event 2
+for specie in species:
+    p_inter = proba.intersection_proba(df=data[specie], 
+                                       cond1=event_1,
+                                       cond2=event_3)
+    print(f"\n{specie} - {event_1} and {event_3} Probability")
+    for cls, p in p_inter.items():
+        print(f"{cls}: {p:.4f}")
