@@ -114,7 +114,7 @@ for specie in species:
 
 # events probability
 # event 1
-event_1 = "`ASPL.0` > 2.0"
+event_1 = "`STRG.0` < 50.0"
 for specie in species:
     p_event = proba.event_proba(df=data[specie], event=event_1)
     print(f"\n{specie} - {event_1} Probability")
@@ -123,7 +123,7 @@ for specie in species:
 
 # %%
 # event 2
-event_2 = "`RHO3.0` < 0.2"
+event_2 = "`T030C.0` < 400"
 for specie in species:
     p_event = proba.event_proba(df=data[specie], event=event_2)
     print(f"\n{specie} - {event_2} Probability")
@@ -132,7 +132,7 @@ for specie in species:
 
 # %%
 # event 3:
-event_3 = "`ASS.0` >= 0.0"
+event_3 = "`ASPL.0` >= 1.5"
 for specie in species:
     p_event = proba.event_proba(df=data[specie], event=event_3)
     print(f"\n{specie} - {event_3} Probability")
@@ -152,7 +152,7 @@ for specie in species:
         print(f"{cls}: {p:.4f}")
 
 # %%
-# event 1 or event 2
+# event 1 or event 3
 for specie in species:
     p_union = proba.union_proba(df=data[specie], 
                                 cond1=event_1,
@@ -164,6 +164,7 @@ for specie in species:
 # %%
 
 # intersection probability
+# event 1 and event 2
 for specie in species:
     p_inter = proba.intersection_proba(df=data[specie], 
                                        cond1=event_1,
@@ -173,7 +174,7 @@ for specie in species:
         print(f"{cls}: {p:.4f}")
 
 # %%
-# event 1 or event 2
+# event 1 and event 3
 for specie in species:
     p_inter = proba.intersection_proba(df=data[specie], 
                                        cond1=event_1,
@@ -181,3 +182,50 @@ for specie in species:
     print(f"\n{specie} - {event_1} and {event_3} Probability")
     for cls, p in p_inter.items():
         print(f"{cls}: {p:.4f}")
+
+# %%
+
+# conditional probability
+# P(`STRG.0` < 50.0 | `CLASS` == 'mRNA')
+cond_1 = event_1
+cond_2 = "`CLASS` == 'mRNA'"
+for specie in species:
+    p_cond = proba.intersection_proba(df=data[specie], 
+                                       cond1=cond_1,
+                                       cond2=cond_2)
+    print(f"\n{specie} - P({cond_1} | {cond_2})")
+    for cls, p in p_cond.items():
+        print(f"{cls}: {p:.4f}")
+
+# %%
+
+cond_1 = event_3
+cond_2 = "`CLASS` == 'lncRNA'"
+for specie in species:
+    p_cond = proba.intersection_proba(df=data[specie], 
+                                       cond1=cond_1,
+                                       cond2=cond_2)
+    print(f"\n{specie} - P({cond_1} | {cond_2})")
+    for cls, p in p_cond.items():
+        print(f"{cls}: {p:.4f}")
+
+# %%
+
+cond_1 = event_1
+cond_2 = event_2
+for specie in species:
+    p_cond = proba.intersection_proba(df=data[specie], 
+                                       cond1=cond_1,
+                                       cond2=cond_2)
+    print(f"\n{specie} - P({cond_1} | {cond_2})")
+    for cls, p in p_cond.items():
+        print(f"{cls}: {p:.4f}")
+
+# %%
+
+feats = ["T030C.0", "ASS.0", "ASPL.0"]
+
+for specie in species:
+    for feat in feats:
+        res = pdf_posterior(data[specie], feature=feat, class_col=class_col, n_bins=20)
+        plot.plot_pdf_posterior(res, feat)
