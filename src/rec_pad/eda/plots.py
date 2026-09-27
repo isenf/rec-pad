@@ -58,6 +58,8 @@ def violin_plot(
     if ax is None:
         _, ax = plt.subplots(figsize=figsize)
 
+    order = sorted(df[class_col].unique())
+
     sns.violinplot(
         data=df,
         x=class_col,
@@ -68,6 +70,8 @@ def violin_plot(
         gap=gap,
         cut=2,
         width=width,
+        order=order,
+        hue_order=order,
         ax=ax,
         legend=True
     )
@@ -77,6 +81,7 @@ def violin_plot(
     if ylim:
         ax.set_ylim(*ylim)
 
+    
     return ax
 
 
@@ -102,7 +107,8 @@ def violin_grid(
         ncols,
         figsize=(figsize_cell[0]*ncols, figsize_cell[1]*nrows),
         sharey=sharey,
-        squeeze=False
+        squeeze=False,
+        constrained_layout=True
     )
 
     for ax, feature in zip(axes.flat, features):
@@ -118,7 +124,10 @@ def violin_grid(
     for ax in axes.flat[n:]:
         ax.set_visible(False)
 
-    fig.tight_layout()
+    fig.suptitle("Violin plot grid",
+                 fontsize=15,
+                 fontweight="bold")
+    # fig.tight_layout()
     return fig
 
 
@@ -140,7 +149,8 @@ def pair_plot(
         sub_df,
         hue=class_col,
         diag_kind="kde",
-        corner=False
+        corner=False,
+        hue_order=sorted(df[class_col].unique())
     )
 
     if title:
@@ -167,7 +177,8 @@ def parallel_coords(
     feat_cols = [c for c in df.columns if c!= class_col]
     df_copy = df.copy()
     if normalize:
-        df_copy = minmax_dataframe(df_copy)
+        df_copy = minmax_dataframe(df_copy.drop(columns=class_col))
+        df_copy[class_col] = df[class_col]
 
     if ax is None:
         _, ax = plt.subplots(figsize=figsize)
