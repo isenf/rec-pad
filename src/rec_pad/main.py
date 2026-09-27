@@ -1,9 +1,5 @@
 # %%
 
-# import os
-# import re
-# import pandas as pd
-# import seaborn as sns
 from rec_pad.utils import *
 from rec_pad.eda import * 
 
@@ -100,6 +96,24 @@ for specie in species:
         features=[c for c in data[specie].columns if c!= class_col],
         title=f"Pair plot {specie}"
     )
+    io.save_fig(
+        fig=fig, 
+        path=f"{path_output}/processed/pairplot",
+        file_name=f"{specie}.png")
+
+# %%
+
+for specie in species:
+    fig = plots.parallel_coords(
+        df=data[specie],
+        class_col=class_col,
+        normalize=True,
+        figsize=(12, 6)
+    )
+    io.save_fig(
+        fig=fig, 
+        path=f"{path_output}/processed/parallel_coords",
+        file_name=f"{specie}.png")
 
 # %% 
 
@@ -227,5 +241,10 @@ feats = ["T030C.0", "ASS.0", "ASPL.0"]
 
 for specie in species:
     for feat in feats:
-        res = pdf_posterior(data[specie], feature=feat, class_col=class_col, n_bins=20)
-        plot.plot_pdf_posterior(res, feat)
+        res = pdf_posterior(data[specie], feature=feat, class_col=class_col, n_bins=16)
+        fig = plot.plot_pdf_posterior(res, feat)
+        io.save_fig(
+            fig,
+            path=f"{path_output}/posterior",
+            file_name=f"{specie}_{feat}.png",
+        )
