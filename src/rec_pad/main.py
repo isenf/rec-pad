@@ -1,21 +1,88 @@
 # %%
 
 from rec_pad.utils import *
-from rec_pad.eda import * 
+from rec_pad.eda import *
+
+from typing import Callable
+from matplotlib.figure import Figure
+
+import matplotlib.pyplot as plt
+import pandas as pd
 
 # %%
 
-path = "../../data/raw"
-path_output = "../../output"
-regex = r"\.0$"
-class_col = "CLASS"
+PATH = "../../data/raw"
+PATH_OUTPUT = "../../output"
+REGEX = r"\.0$"
+CLASS_COL = "CLASS"
 
 # %%
-data, species = io.load_species(path=path)
+data, species = io.load_species(path=PATH)
+
+# %%
+# helpers
+
+def print_proba(
+    specie: str,
+    proba_dict: dict
+) -> None:
+    """
+    Prints the probability result.
+
+    Parameters
+    ----------
+    specie: str
+        Specie name.
+    proba_dict: dict
+        The probability return dict.
+    """
+    print(f"\n{specie}")
+    for cls, p in proba_dict.items():
+        print(f"{cls}: {p:.4f}")
+
+
+def print_proba_by_species(
+    data: dict[str, pd.DataFrame],
+    species: list[str],
+    title: str,
+    func: Callable,
+    **kwargs
+) -> None:
+    """
+    Calculates and prints the probability by species.
+
+    Parameters
+    ----------
+    data: dict[str, pd.DataFrame]
+        The data dictionary.
+    species: list[str]
+        Species names list.
+    title: str
+        Title.
+    func: Callable
+        Function.
+    **kwargs
+        Function arguments.
+    """
+    print(f"{title}")
+    for specie in species:
+        p = func(df=data[specie], **kwargs)
+        print_proba(f"{specie}", p)
+
+
+def save_and_close(
+    fig: Figure,
+    subdir: str,
+    file_name: str
+) -> None:
+    io.save_fig(fig=fig, path=f"{PATH_OUTPUT}/{subdir}", 
+                file_name=file_name)
+    plt.close(fig)
+
 
 # %%
 # data basic infos
-infos = summarize_datasets(data=data, class_col=class_col)
+infos = summarize_datasets(data=data, class_col=CLASS_COL)
 print(infos)
 
 # %%
@@ -37,8 +104,8 @@ for specie in species:
 for specie in species:
     data[specie] = features.filter_columns(
         df=data[specie],
-        regex=regex,
-        class_col=class_col
+        regex=REGEX,
+        class_col=CLASS_COL
     )
 
 # %%
@@ -46,22 +113,21 @@ for specie in species:
 for specie in species:
     ax = plots.corr_heatmap(
         df=data[specie],
-        class_col=class_col,
+        class_col=CLASS_COL,
         annot=True,
         figsize=(20, 16)
     )
-    io.save_fig(
-        fig=ax, 
-        path=f"{path_output}/raw/corr", 
+    save_and_close(
+        fig=ax.figure, 
+        subdir="/raw/corr", 
         file_name=f"{specie}.png")
-    plt.close(ax.figure)
 
 # %%
 
 data, votes = features.select_features(
     data,     
     threshold=0.8,
-    class_col=class_col,
+    class_col=CLASS_COL,
     min_votes=len(data)-1,
     return_votes=True
     )
@@ -69,7 +135,7 @@ data, votes = features.select_features(
 # %%
 # dataset infos after feature selection
 
-infos = stats.summarize_datasets(data=data, class_col=class_col)
+infos = stats.summarize_datasets(data=data, class_col=CLASS_COL)
 print(infos)
 
 # %%
@@ -78,13 +144,13 @@ print(infos)
 for specie in species:
     fig = plots.violin_grid(
         df=data[specie], 
-        features=[c for c in data[specie].columns if c!= class_col],
-        class_col=class_col, 
+        features=[c for c in data[specie].columns if c!= CLASS_COL],
+        class_col=CLASS_COL, 
         ncols=4,
         sharey=True)
-    io.save_fig(
-        fig=fig, 
-        path=f"{path_output}/processed/violin",
+    save_and_close(
+        fig=fig.figure, 
+        subdir="processed/violin",
         file_name=f"{specie}_normalized.png")
 
 # %%
@@ -92,13 +158,13 @@ for specie in species:
 for specie in species:
     fig = plots.pair_plot(
         df=data[specie],
-        class_col=class_col,
-        features=[c for c in data[specie].columns if c!= class_col],
+        class_col=CLASS_COL,
+        features=[c for c in data[specie].columns if c!= CLASS_COL],
         title=f"Pair plot {specie}"
     )
-    io.save_fig(
-        fig=fig, 
-        path=f"{path_output}/processed/pairplot",
+    save_and_close(
+        fig=fig.figure, 
+        subdir="processed/pairplot",
         file_name=f"{specie}.png")
 
 # %%
@@ -106,134 +172,152 @@ for specie in species:
 for specie in species:
     fig = plots.parallel_coords(
         df=data[specie],
-        class_col=class_col,
+        class_col=CLASS_COL,
         normalize=True,
         figsize=(12, 6)
     )
-    io.save_fig(
-        fig=fig, 
-        path=f"{path_output}/processed/parallel_coords",
+    save_and_close(
+        fig=fig.figure, 
+        subdir="processed/parallel_coords",
         file_name=f"{specie}.png")
+    
 
 # %% 
 
 # prior probability
-for specie in species:
-    p_prior = proba.prior_proba(data[specie], col=class_col)
-    print(f"\n{specie} - Prior Probability")
-    for cls, p in p_prior.items():
-        print(f"{cls}: {p:.4f}")
+print_proba_by_species(
+    data=data,
+    species=species,
+    title="Prior Probability",
+    func=proba.prior_proba,
+    col=CLASS_COL
+    )
 
 # %%
 
 # events probability
 # event 1
 event_1 = "`STRG.0` < 50.0"
-for specie in species:
-    p_event = proba.event_proba(df=data[specie], event=event_1)
-    print(f"\n{specie} - {event_1} Probability")
-    for cls, p in p_event.items():
-        print(f"{cls}: {p:.4f}")
+
+print_proba_by_species(
+    data=data,
+    species=species,
+    title=f"Event probability - {event_1}",
+    func=proba.event_proba,
+    event=event_1
+)
 
 # %%
 # event 2
 event_2 = "`T030C.0` < 400"
-for specie in species:
-    p_event = proba.event_proba(df=data[specie], event=event_2)
-    print(f"\n{specie} - {event_2} Probability")
-    for cls, p in p_event.items():
-        print(f"{cls}: {p:.4f}")
+
+print_proba_by_species(
+    data=data,
+    species=species,
+    title=f"Event probability - {event_2}",
+    func=proba.event_proba,
+    event=event_2
+)
 
 # %%
 # event 3:
 event_3 = "`ASPL.0` >= 1.5"
-for specie in species:
-    p_event = proba.event_proba(df=data[specie], event=event_3)
-    print(f"\n{specie} - {event_3} Probability")
-    for cls, p in p_event.items():
-        print(f"{cls}: {p:.4f}")
+print_proba_by_species(
+    data=data,
+    species=species,
+    title=f"Event probability - {event_3}",
+    func=proba.event_proba,
+    event=event_3
+)
 
 # %%
 
 # union probability
 # event 1 or event 2
-for specie in species:
-    p_union = proba.union_proba(df=data[specie], 
-                                cond1=event_1,
-                                cond2=event_2)
-    print(f"\n{specie} - {event_1} or {event_2} Probability")
-    for cls, p in p_union.items():
-        print(f"{cls}: {p:.4f}")
+print_proba_by_species(
+    data=data,
+    species=species,
+    title=f"Union probability - {event_1} or {event_2}",
+    func=proba.union_proba,
+    cond1=event_1,
+    cond2=event_2
+)
 
 # %%
 # event 1 or event 3
-for specie in species:
-    p_union = proba.union_proba(df=data[specie], 
-                                cond1=event_1,
-                                cond2=event_3)
-    print(f"\n{specie} - {event_1} or {event_3} Probability")
-    for cls, p in p_union.items():
-        print(f"{cls}: {p:.4f}")
+print_proba_by_species(
+    data=data,
+    species=species,
+    title=f"Union probability - {event_1} or {event_3}",
+    func=proba.union_proba,
+    cond1=event_1,
+    cond2=event_3
+)
 
 # %%
 
 # intersection probability
 # event 1 and event 2
-for specie in species:
-    p_inter = proba.intersection_proba(df=data[specie], 
-                                       cond1=event_1,
-                                       cond2=event_2)
-    print(f"\n{specie} - {event_1} and {event_2} Probability")
-    for cls, p in p_inter.items():
-        print(f"{cls}: {p:.4f}")
+print_proba_by_species(
+    data=data,
+    species=species,
+    title=f"Intersection probability - {event_1} and {event_2}",
+    func=proba.intersection_proba,
+    cond1=event_1,
+    cond2=event_2
+)
 
 # %%
 # event 1 and event 3
-for specie in species:
-    p_inter = proba.intersection_proba(df=data[specie], 
-                                       cond1=event_1,
-                                       cond2=event_3)
-    print(f"\n{specie} - {event_1} and {event_3} Probability")
-    for cls, p in p_inter.items():
-        print(f"{cls}: {p:.4f}")
+print_proba_by_species(
+    data=data,
+    species=species,
+    title=f"Intersection probability - {event_1} and {event_3}",
+    func=proba.intersection_proba,
+    cond1=event_1,
+    cond2=event_3
+)
 
 # %%
 
 # conditional probability
 # P(`STRG.0` < 50.0 | `CLASS` == 'mRNA')
-cond_1 = event_1
-cond_2 = "`CLASS` == 'mRNA'"
-for specie in species:
-    p_cond = proba.intersection_proba(df=data[specie], 
-                                       cond1=cond_1,
-                                       cond2=cond_2)
-    print(f"\n{specie} - P({cond_1} | {cond_2})")
-    for cls, p in p_cond.items():
-        print(f"{cls}: {p:.4f}")
+cond1 = event_1
+cond2 = "`CLASS` == 'mRNA'"
+print_proba_by_species(
+    data=data,
+    species=species,
+    title=f"Conditional probability - P({cond1} | {cond2})",
+    func=proba.intersection_proba,
+    cond1=cond1,
+    cond2=cond2
+)
 
 # %%
 
-cond_1 = event_3
-cond_2 = "`CLASS` == 'lncRNA'"
-for specie in species:
-    p_cond = proba.intersection_proba(df=data[specie], 
-                                       cond1=cond_1,
-                                       cond2=cond_2)
-    print(f"\n{specie} - P({cond_1} | {cond_2})")
-    for cls, p in p_cond.items():
-        print(f"{cls}: {p:.4f}")
+cond1 = event_3
+cond2 = "`CLASS` == 'mRNA'"
+print_proba_by_species(
+    data=data,
+    species=species,
+    title=f"Conditional probability - P({cond1} | {cond2})",
+    func=proba.intersection_proba,
+    cond1=cond1,
+    cond2=cond2
+)
 
 # %%
 
-cond_1 = event_1
-cond_2 = event_2
-for specie in species:
-    p_cond = proba.intersection_proba(df=data[specie], 
-                                       cond1=cond_1,
-                                       cond2=cond_2)
-    print(f"\n{specie} - P({cond_1} | {cond_2})")
-    for cls, p in p_cond.items():
-        print(f"{cls}: {p:.4f}")
+cond1 = event_1
+cond2 = event_2
+print_proba_by_species(
+    data=data,
+    species=species,
+    title=f"Conditional probability - P({cond1} | {cond2})",
+    func=proba.intersection_proba,
+    cond1=cond1,
+    cond2=cond2
+)
 
 # %%
 
@@ -241,10 +325,10 @@ feats = ["T030C.0", "ASS.0", "ASPL.0"]
 
 for specie in species:
     for feat in feats:
-        res = pdf_posterior(data[specie], feature=feat, class_col=class_col, n_bins=16)
+        res = pdf_posterior(data[specie], feature=feat, class_col=CLASS_COL, n_bins=16)
         fig = plot.plot_pdf_posterior(res, feat)
-        io.save_fig(
-            fig,
-            path=f"{path_output}/posterior",
-            file_name=f"{specie}_{feat}.png",
+        save_and_close(
+            fig=fig,
+            subdir="posterior",
+            file_name=f"{specie}_{feat}.png"
         )
