@@ -1,8 +1,9 @@
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-import matplotlib.axes
-from typing import Literal, Iterable
+from matplotlib.axes import Axes
+from matplotlib.figure import Figure
+from typing import Literal
 
 
 _DEFAULT_YLABELS = {
@@ -11,12 +12,9 @@ _DEFAULT_YLABELS = {
     "likelihood": "p(x ∈ Δb | wi)",
     "posterior": "P(wi | x ∈ Δb)",
     "joint": "p(x ∈ Δb, wi)",
-    "evidence": "p(x ∈ Δb)"
+    "evidence": "p(x ∈ Δb)",
+    "pdf": "p(x | wi)"
 }
-
-_DEFAULT_KEYS = ("prior", "counts", 
-                 "likelihood", "joint", 
-                 "evidence", "posterior")
 
 _DEFAULT_TITLES = {
     "prior": "Prior Probability",
@@ -24,9 +22,14 @@ _DEFAULT_TITLES = {
     "likelihood": "Likelihood",
     "posterior": "Posterior Probability",
     "joint": "Likelihood ⋅ Prior",
-    "evidence": "Evidence"
+    "evidence": "Evidence",
+    "pdf": "Class-Conditional PDF"
 }
 
+_HIST_KEYS = ("prior", "counts")
+_CURVE_KEYS = ("likelihood", "posterior", "joint", "evidence", "pdf")
+_DEFAULT_KEYS = ("prior", "counts", "likelihood", "joint", 
+                 "evidence", "posterior")
 
 def _format_decimals(
     interval: pd.Interval,
@@ -39,6 +42,7 @@ def _format_decimals(
         return str(interval)
 
     return f"({left}, {right}]"
+
 
 def _find_dec_boundary(
     data: pd.DataFrame,
@@ -82,30 +86,38 @@ def _find_dec_boundary(
 
 
 def plot_binned_curves(
-    results: dict,
-    key: Literal["likelihood", "posterior", "joint", "counts", "evidence"],
+    result: dict,
+    key: Literal["likelihood", "posterior", "joint", "counts", "evidence", "pdf"],
     feature: str,
     marker: str|None=None,
     y_label:str | None=None,
     y_lim: tuple[float, float]|None=None,
-    ax: matplotlib.axes.Axes = None,
+    ax: Axes = None,
     show_decision: bool=True,
-) -> matplotlib.axes.Axes:
+    step: bool=False,
+) -> Axes:
     """
     
     """
-    if key not in ("likelihood", "posterior", "joint", "counts", "evidence"):
-        raise ValueError(f"unknown key value: {key}, must be "
-                         "'likelihood', 'posterior', 'joint', 'counts' or 'evidence'")
+    if key not in _CURVE_KEYS:
+        raise ValueError(f"unknown key value: {key}, must be in {_CURVE_KEYS}")
+    
     ax = ax or plt.gca()
-    data = results[key]
+    data = result[key]
     x = np.array([interval.mid for interval in data.index])
+    lines = []
 
     if key == "evidence":
         ax.plot(x, data)
     else:
         for c in data.columns:
-            ax.plot(x, data[c].to_numpy(), label=str(c), marker=marker)
+            y = data[c].to_numpy()
+            if step:
+                (l,) = ax.step(x, y, where="mid", label=str(c))
+            else:
+                (l,) = ax.plot(x, y, 
+                               label=str(c), marker=marker)
+            lines.append(l)
 
     if show_decision and key in ("posterior", "joint"):
         bounds = _find_dec_boundary(data, x)
@@ -122,6 +134,8 @@ def plot_binned_curves(
     ax.set_ylabel(ylabel=y_label or _DEFAULT_YLABELS[key])
     if y_lim is not None and isinstance(y_lim, tuple[float, float]):
         ax.set_ylim(*y_lim)
+    if lines:
+        ax.legend()
     return ax
 
 
@@ -132,10 +146,11 @@ def plot_binned_hist(
     xlabel: str=None,
     bar_width: float=1.0,
     interval_decimals: int=2,
-    ax: matplotlib.axes.Axes = None,
+    ax: Axes = None,
 ):
-    if key not in ("prior", "counts"):
-        raise ValueError(f"unknown key value: {key}, must be 'prior' or 'count'")
+    if key not in _HIST_KEYS:
+        raise ValueError(f"unknown key value: {key}, must be in {_HIST_KEYS}")
+    
     ax = ax or plt.gca()
     data = result[key]
 
@@ -160,13 +175,37 @@ def plot_binned_hist(
     return ax
 
 
-def plot_pdf_posterior(
+def plot_pdf(
+    result: dict,
+    feature: str,
+    title: str|None=None,
+    step: bool=False,
+    marker: str|None=None,
+    y_label: str|None=None,
+    figsize: tuple[float, float]=(8, 6)
+) -> Figure:
+    fig, ax = plt.subplots(figsize=figsize)
+
+    plot_binned_curves(result=result, 
+                       key="pdf",
+                       feature=feature,
+                       marker=marker,
+                       step=step,
+                       y_label=y_label,
+                       ax=ax
+                       )
+    ax.set_title(title if title is not None else _DEFAULT_TITLES["pdf"])
+
+    return fig
+
+
+def plot_posterior(
     result: dict,
     feature: str,
     keys: list[str]=_DEFAULT_KEYS,
     n_cols: int=3,
     figsize: tuple[float, float]=None
-):
+) -> Figure:
     n_rows = (len(keys)+n_cols-1)//n_cols
     if figsize is None:
         figsize = (9.0 * n_cols, 7 * n_rows)
@@ -178,7 +217,7 @@ def plot_pdf_posterior(
     axes = axes.ravel()
 
     for ax, key in zip(axes, keys):
-        if key in ("prior", "counts"):
+        if key in _HIST_KEYS:
             plot_binned_hist(result, 
                              key=key, 
                              ax=ax,
@@ -193,8 +232,7 @@ def plot_pdf_posterior(
         ax.set_title(_DEFAULT_TITLES[key])
 
     fig.suptitle(f"Bayesian Decision Theory - {feature}",
-                 fontsize=15,
+                 fontsize=16,
                  fontweight="bold")
 
     return fig
-

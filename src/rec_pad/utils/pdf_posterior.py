@@ -2,6 +2,7 @@ import pandas as pd
 import numpy as np
 from rec_pad.utils.proba import prior_proba
 
+
 def make_bins(
     df: pd.DataFrame,
     feature: str,
@@ -168,6 +169,28 @@ def posterior(
     return joint.div(evidence,axis=0)
 
 
+def pdf(
+    counts: pd.DataFrame,
+) -> pd.DataFrame:
+    """
+    Compute the probability density function, p(x | wi).
+    Considers the classes.
+
+    Parameters
+    ----------
+    counts: pd.DataFrame
+        Raw counts.
+    
+    Returns
+    -------
+    pd.DataFrame
+        PDF by class.
+    """
+    widths = np.array([iv.right - iv.left for iv in counts.index])
+    n = counts.sum(axis=0)
+    return counts.div(widths, axis=0).div(n, axis=1)
+
+
 def pdf_posterior(
     df: pd.DataFrame,
     feature: str,
@@ -194,6 +217,7 @@ def pdf_posterior(
     """
     binned, edges, centers = make_bins(df, feature, n_bins=n_bins)
     counts_ = raw_counts(df, binned, class_col,)
+    pdf_ = pdf(counts=counts_)
     prior = priors(df, class_col)
     likelihood_ = likelihood(counts_)
     joint_ = joint(likelihood_, prior)
@@ -201,6 +225,6 @@ def pdf_posterior(
     posterior_ = posterior(joint_, evidence_)
 
     return dict(edges=edges, centers=centers, counts=counts_,
-                prior=prior, likelihood=likelihood_, joint=joint_,
-                evidence=evidence_, posterior=posterior_)
+                pdf=pdf_, prior=prior, likelihood=likelihood_, 
+                joint=joint_, evidence=evidence_, posterior=posterior_)
 
