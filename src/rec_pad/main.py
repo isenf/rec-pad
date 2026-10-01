@@ -76,7 +76,7 @@ def save_and_close(
     file_name: str
 ) -> None:
     io.save_fig(fig=fig, path=f"{PATH_OUTPUT}/{subdir}", 
-                file_name=file_name)
+                file_name=file_name, dpi=250)
     plt.close(fig)
 
 
@@ -320,15 +320,36 @@ print_proba_by_species(
 )
 
 # %%
-
-feats = ["T030C.0", "ASS.0", "ASPL.0"]
+# pdf and posterior probability
+FEATURES = ["T030C.0", "ASS.0", "ASPL.0"]
 
 for specie in species:
-    for feat in feats:
-        res = pdf_posterior(data[specie], feature=feat, class_col=CLASS_COL, n_bins=16)
-        fig = plot.plot_pdf_posterior(res, feat)
+    for feat in FEATURES:
+        res = pdf_posterior(data[specie], feature=feat, 
+                            class_col=CLASS_COL, n_bins=16)
+
+        # pdf curve
+        fig_pdf = plot.plot_pdf(res, feature=feat, step=True,
+                                title=f"Class-Conditional PDF - {specie} {feat}")
         save_and_close(
-            fig=fig,
+            fig=fig_pdf,
+            subdir="pdf",
+            file_name=f"{specie}_{feat}.jpg",
+        )
+
+        # posterior plots
+        fig_post = plot.plot_binned_curves(res, "posterior", feature=feat, 
+                                           title=f"Posterior probability - {specie} {feat}")
+        save_and_close(
+            fig=fig_post.figure,
             subdir="posterior",
-            file_name=f"{specie}_{feat}.png"
+            file_name=f"{specie}_{feat}.jpg",
+        )
+
+        # posterior grid plot
+        fig_grid = plot.plot_posterior(res, feature=feat)
+        save_and_close(
+            fig=fig_grid,
+            subdir="posterior_grid",
+            file_name=f"{specie}_{feat}.jpg",
         )
