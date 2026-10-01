@@ -89,6 +89,7 @@ def plot_binned_curves(
     result: dict,
     key: Literal["likelihood", "posterior", "joint", "counts", "evidence", "pdf"],
     feature: str,
+    title: str|None=None,
     marker: str|None=None,
     y_label:str | None=None,
     y_lim: tuple[float, float]|None=None,
@@ -132,6 +133,8 @@ def plot_binned_curves(
 
     ax.set_xlabel(xlabel=feature)
     ax.set_ylabel(ylabel=y_label or _DEFAULT_YLABELS[key])
+    if title is not None:
+        ax.set_title(title)
     if y_lim is not None and isinstance(y_lim, tuple[float, float]):
         ax.set_ylim(*y_lim)
     if lines:
@@ -142,6 +145,7 @@ def plot_binned_curves(
 def plot_binned_hist(
     result: dict,
     key: Literal["prior", "counts"],
+    title: str|None=None,
     ylabel: str = None,
     xlabel: str=None,
     bar_width: float=1.0,
@@ -171,6 +175,9 @@ def plot_binned_hist(
         ax.set_xticklabels(new_labels,
                            rotation=45)
         ax.legend(title="class")
+
+    if title is not None:
+        ax.set_title(title)
 
     return ax
 
@@ -221,6 +228,7 @@ def plot_posterior(
             plot_binned_hist(result, 
                              key=key, 
                              ax=ax,
+                             title=_DEFAULT_TITLES[key],
                              xlabel=feature,
                              bar_width=0.85 if key=="prior" else 1.0,
                              )
@@ -228,8 +236,8 @@ def plot_posterior(
             plot_binned_curves(result,
                                feature=feature,
                                key=key,
+                               title=_DEFAULT_TITLES[key],
                                ax=ax)
-        ax.set_title(_DEFAULT_TITLES[key])
 
     fig.suptitle(f"Bayesian Decision Theory - {feature}",
                  fontsize=16,
