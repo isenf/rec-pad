@@ -1,13 +1,14 @@
 # %%
 
-from rec_pad.utils import *
-from rec_pad.eda import *
-
-from typing import Callable
-from matplotlib.figure import Figure
-
-import matplotlib.pyplot as plt
-import pandas as pd
+from rec_pad import (
+    bayes,
+    features,
+    io,
+    plots,
+    proba,
+    stats,
+    helpers
+)
 
 # %%
 
@@ -20,82 +21,21 @@ CLASS_COL = "CLASS"
 data, species = io.load_species(path=PATH)
 
 # %%
-# helpers
-
-def print_proba(
-    specie: str,
-    proba_dict: dict
-) -> None:
-    """
-    Prints the probability result.
-
-    Parameters
-    ----------
-    specie: str
-        Specie name.
-    proba_dict: dict
-        The probability return dict.
-    """
-    print(f"\n{specie}")
-    for cls, p in proba_dict.items():
-        print(f"{cls}: {p:.4f}")
-
-
-def print_proba_by_species(
-    data: dict[str, pd.DataFrame],
-    species: list[str],
-    title: str,
-    func: Callable,
-    **kwargs
-) -> None:
-    """
-    Calculates and prints the probability by species.
-
-    Parameters
-    ----------
-    data: dict[str, pd.DataFrame]
-        The data dictionary.
-    species: list[str]
-        Species names list.
-    title: str
-        Title.
-    func: Callable
-        Function.
-    **kwargs
-        Function arguments.
-    """
-    print(f"{title}")
-    for specie in species:
-        p = func(df=data[specie], **kwargs)
-        print_proba(f"{specie}", p)
-
-
-def save_and_close(
-    fig: Figure,
-    subdir: str,
-    file_name: str
-) -> None:
-    io.save_fig(fig=fig, path=f"{PATH_OUTPUT}/{subdir}", 
-                file_name=file_name, dpi=250)
-    plt.close(fig)
-
-
-# %%
 # data basic infos
-infos = summarize_datasets(data=data, class_col=CLASS_COL)
+infos = stats.summarize_datasets(data=data, class_col=CLASS_COL)
 print(infos)
 
 # %%
 
 for specie in species:
-    print(f"\nspecie: {specie}\nmissings: {missing_report(data[specie])}\n"
-          f"duplicate values: {duplicate_count(data[specie])}")
+    print(f"\nspecie: {specie}\nmissings: {stats.missing_report(data[specie])}\n"
+          f"duplicate values: {stats.duplicate_count(data[specie])}")
 
 # %%
 # drop duplicate values
 
 for specie in species:
-    data[specie] = drop_duplicates(data[specie])
+    data[specie] = stats.drop_duplicates(data[specie])
     # print(f"duplicate values: {duplicate_count(data[specie])}")
 
 # %%
@@ -117,7 +57,7 @@ for specie in species:
         annot=True,
         figsize=(20, 16)
     )
-    save_and_close(
+    helpers.save_and_close(
         fig=ax.figure, 
         subdir="/raw/corr", 
         file_name=f"{specie}.png")
@@ -148,7 +88,7 @@ for specie in species:
         class_col=CLASS_COL, 
         ncols=4,
         sharey=True)
-    save_and_close(
+    helpers.save_and_close(
         fig=fig.figure, 
         subdir="processed/violin",
         file_name=f"{specie}_normalized.png")
@@ -162,7 +102,7 @@ for specie in species:
         features=[c for c in data[specie].columns if c!= CLASS_COL],
         title=f"Pair plot {specie}"
     )
-    save_and_close(
+    helpers.save_and_close(
         fig=fig.figure, 
         subdir="processed/pairplot",
         file_name=f"{specie}.png")
@@ -176,7 +116,7 @@ for specie in species:
         normalize=True,
         figsize=(12, 6)
     )
-    save_and_close(
+    helpers.save_and_close(
         fig=fig.figure, 
         subdir="processed/parallel_coords",
         file_name=f"{specie}.png")
@@ -185,7 +125,7 @@ for specie in species:
 # %% 
 
 # prior probability
-print_proba_by_species(
+helpers.print_proba_by_species(
     data=data,
     species=species,
     title="Prior Probability",
@@ -199,7 +139,7 @@ print_proba_by_species(
 # event 1
 event_1 = "`STRG.0` < 50.0"
 
-print_proba_by_species(
+helpers.print_proba_by_species(
     data=data,
     species=species,
     title=f"Event probability - {event_1}",
@@ -211,7 +151,7 @@ print_proba_by_species(
 # event 2
 event_2 = "`T030C.0` < 400"
 
-print_proba_by_species(
+helpers.print_proba_by_species(
     data=data,
     species=species,
     title=f"Event probability - {event_2}",
@@ -222,7 +162,7 @@ print_proba_by_species(
 # %%
 # event 3:
 event_3 = "`ASPL.0` >= 1.5"
-print_proba_by_species(
+helpers.print_proba_by_species(
     data=data,
     species=species,
     title=f"Event probability - {event_3}",
@@ -234,7 +174,7 @@ print_proba_by_species(
 
 # union probability
 # event 1 or event 2
-print_proba_by_species(
+helpers.print_proba_by_species(
     data=data,
     species=species,
     title=f"Union probability - {event_1} or {event_2}",
@@ -245,7 +185,7 @@ print_proba_by_species(
 
 # %%
 # event 1 or event 3
-print_proba_by_species(
+helpers.print_proba_by_species(
     data=data,
     species=species,
     title=f"Union probability - {event_1} or {event_3}",
@@ -258,7 +198,7 @@ print_proba_by_species(
 
 # intersection probability
 # event 1 and event 2
-print_proba_by_species(
+helpers.print_proba_by_species(
     data=data,
     species=species,
     title=f"Intersection probability - {event_1} and {event_2}",
@@ -269,7 +209,7 @@ print_proba_by_species(
 
 # %%
 # event 1 and event 3
-print_proba_by_species(
+helpers.print_proba_by_species(
     data=data,
     species=species,
     title=f"Intersection probability - {event_1} and {event_3}",
@@ -284,7 +224,7 @@ print_proba_by_species(
 # P(`STRG.0` < 50.0 | `CLASS` == 'mRNA')
 cond1 = event_1
 cond2 = "`CLASS` == 'mRNA'"
-print_proba_by_species(
+helpers.print_proba_by_species(
     data=data,
     species=species,
     title=f"Conditional probability - P({cond1} | {cond2})",
@@ -297,7 +237,7 @@ print_proba_by_species(
 
 cond1 = event_3
 cond2 = "`CLASS` == 'mRNA'"
-print_proba_by_species(
+helpers.print_proba_by_species(
     data=data,
     species=species,
     title=f"Conditional probability - P({cond1} | {cond2})",
@@ -310,7 +250,7 @@ print_proba_by_species(
 
 cond1 = event_1
 cond2 = event_2
-print_proba_by_species(
+helpers.print_proba_by_species(
     data=data,
     species=species,
     title=f"Conditional probability - P({cond1} | {cond2})",
@@ -325,30 +265,30 @@ FEATURES = ["T030C.0", "ASS.0", "ASPL.0"]
 
 for specie in species:
     for feat in FEATURES:
-        res = pdf_posterior(data[specie], feature=feat, 
+        res = bayes.pdf_posterior(data[specie], feature=feat, 
                             class_col=CLASS_COL, n_bins=16)
 
         # pdf curve
-        fig_pdf = plot.plot_pdf(res, feature=feat, step=True,
+        fig_pdf = plots.plot_pdf(res, feature=feat, step=True,
                                 title=f"Class-Conditional PDF - {specie} {feat}")
-        save_and_close(
+        helpers.save_and_close(
             fig=fig_pdf,
             subdir="pdf",
             file_name=f"{specie}_{feat}.jpg",
         )
 
         # posterior plots
-        fig_post = plot.plot_binned_curves(res, "posterior", feature=feat, 
+        fig_post = plots.plot_binned_curves(res, "posterior", feature=feat, 
                                            title=f"Posterior probability - {specie} {feat}")
-        save_and_close(
+        helpers.save_and_close(
             fig=fig_post.figure,
             subdir="posterior",
             file_name=f"{specie}_{feat}.jpg",
         )
 
         # posterior grid plot
-        fig_grid = plot.plot_posterior(res, feature=feat)
-        save_and_close(
+        fig_grid = plots.plot_posterior(res, feature=feat)
+        helpers.save_and_close(
             fig=fig_grid,
             subdir="posterior_grid",
             file_name=f"{specie}_{feat}.jpg",
