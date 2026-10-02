@@ -1,0 +1,37 @@
+[project]
+name = "rec_pad"
+version = "0.1.0"
+description = "Pattern recognition coursework"
+readme = "README.md"
+authors = [
+    { name = "Dante Fabro", email = "mfabro@alunos.utfpr.edu.com" }
+]
+requires-python = ">=3.14"
+dependencies = [
+    "fastparquet>=2026.5.0",
+    "matplotlib>=3.11.2",
+    "numpy>=2.5.3",
+    "pandas>=3.0.5",
+    "scikit-learn>=1.9.1",
+    "seaborn>=0.13.2",
+]
+
+[project.optional-dependencies]
+notebook = [
+    "ipykernel>=7.3.0",
+    "ipython>=9.17.1",
+]
+
+[project.scripts]
+rec-pad = "rec_pad:main"
+
+[build-system]
+requires = ["uv_build>=0.12.15,<0.13.0"]
+build-backend = "uv_build"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = "test_*.py"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/rec_pad"]
