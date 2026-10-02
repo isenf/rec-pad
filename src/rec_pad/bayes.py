@@ -1,6 +1,6 @@
 import pandas as pd
 import numpy as np
-from rec_pad.utils.proba import prior_proba
+from rec_pad.proba import prior_proba
 
 
 def make_bins(
