@@ -72,11 +72,16 @@ data, votes = features.select_features(
     return_votes=True
     )
 
+print(f"votes:\n{votes}")
+
 # %%
 # dataset infos after feature selection
 
 infos = stats.summarize_datasets(data=data, class_col=CLASS_COL)
 print(infos)
+
+# %%
+stats.datasets_desc(data=data)
 
 # %%
 
