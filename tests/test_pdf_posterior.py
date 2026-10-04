@@ -2,7 +2,7 @@
 
 import pandas as pd
 import numpy as np
-from rec_pad.utils.pdf_posterior import *
+from rec_pad.bayes import *
 import matplotlib.pyplot as plt
 import seaborn as sns
 

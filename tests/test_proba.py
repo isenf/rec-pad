@@ -1,7 +1,7 @@
 # %%
 
 import pandas as pd
-from rec_pad.utils.proba import (
+from rec_pad.proba import (
     prior_proba, 
     event_proba,
     intersection_proba,

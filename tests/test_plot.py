@@ -2,8 +2,8 @@
 
 import pandas as pd
 import numpy as np
-from rec_pad.utils.plot import *
-from rec_pad.utils.pdf_posterior import pdf_posterior
+from rec_pad.plots import *
+from rec_pad.bayes import *
 import matplotlib.pyplot as plt
 import seaborn as sns
 
@@ -28,10 +28,6 @@ plot_binned_curves(res, "joint", "gc_content", "rna_class")
 plot_binned_curves(res, "posterior", "gc_content", "rna_class")
 
 # %%
-plot_binned_curves(res, "counts", "gc_content", "rna_class", marker="d")
-
-
-# %%
 plot_binned_curves(res, "evidence", "gc_content", "rna_class", marker="d")
 
 # %%
@@ -42,4 +38,7 @@ plot_binned_hist(res, "counts")
 plot_binned_hist(res, 'prior', bar_width=0.8, xlabel="class")
 
 # %%
-plot_pdf_posterior(res, feature="gc_content", )
+plot_posterior(res, feature="gc_content", )
+
+# %%
+plot_pdf(res, feature="gc_content")
