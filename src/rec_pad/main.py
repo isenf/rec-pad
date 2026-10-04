@@ -10,10 +10,13 @@ from rec_pad import (
     helpers
 )
 
+from pathlib import Path
+
 # %%
 
-PATH = "../../data/raw"
-PATH_OUTPUT = "../../output"
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+PATH = PROJECT_ROOT/"data"/"raw"
+PATH_OUTPUT = PROJECT_ROOT/"output"
 REGEX = r"\.0$"
 CLASS_COL = "CLASS"
 
