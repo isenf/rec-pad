@@ -42,8 +42,32 @@ def corr_heatmap(
     ax: Axes=None,
     figsize: tuple[float, float]=(20, 16),
     annot: bool=False,
-    title: str=None,
+    title: str|None=None,
 ) -> Axes:
+    """
+    Plots an absolute correlation heatmap.
+
+    Parameters
+    ----------
+    df: pd.DataFrame
+        Input data.
+    class_col: str, optional
+        Class column name. The default is "CLASS".
+    ax: Axes, optional
+        Matplotlib Axes. The default is None.
+    figsize: tuple[float, float], optional
+        Figure size. The default is (20, 16).
+    annot: bool, optional
+        If True, annotate each cell correlation value. 
+        The default is False.
+    title: str|None, optional
+        Title. The default is None.
+    
+    Returns
+    -------
+    Axes
+        The matplotlib Axes containing the heatmap
+    """
     if ax is None:
         _, ax = plt.subplots(figsize=figsize)
     elif figsize is not None:
@@ -75,6 +99,33 @@ def violin_plot(
     gap: float=0.0,
     width: float=1.0,
 ) -> Axes:
+    """
+    Plot a violin distribution of one feature grouped by class
+    
+    Parameters
+    ----------
+    df: pd.DataFrame
+        Input data.
+    class_col: str, optional
+        Class column name. The default is "CLASS".
+    feature: str
+        The feature column.
+    ax: Axes, optional
+        Matplotlib Axes. The default is None.
+    figsize: tuple[float, float], optional
+        Figure size. The default is (6, 5).
+    title: str, optional
+        Title. The default is None.
+    ylim: tuple[float, float]|None
+        Y-axis limits as (bottom, top). The default is None.
+    width: float, optional
+        Gap between violins in the same category. The defaults to 0.0.
+        
+    Returns
+    -------
+    Axes
+        The matplotlib Axes containing the violin plot.
+    """
     if class_col not in df.columns:
         raise KeyError(f"the class_col '{class_col}' must be in the dataframe")
     if feature not in df.columns:
@@ -121,6 +172,31 @@ def violin_grid(
     figsize_cell: tuple[float, float]=(4, 3.5),
     sharey: bool=False
 ) -> Figure:
+    """
+    Create a grid of violin plots for multiple features.
+    
+    Parameters
+    ----------
+    df: pd.DataFrame
+        Input data.
+    features: list[str]
+        Features.
+    class_col: str, optional
+        Class column name. The default is "CLASS".
+    ncols: int, optional
+        Number of columns. The default is 3.
+    figsize_cell: tuple[float, float]
+        Size of each individual subplot cell. 
+        The default is (4, 3.5).
+    sharey: bool, optional
+        If True, all subplots share the same y-axis (normalize features).
+        The default is False.
+
+    Returns
+    -------
+    Figure
+        The matplotlib Figure containing the violin grid.
+    """
     n=len(features)
     ncols=min(ncols, n)
     nrows = int(np.ceil(n/ncols))
@@ -166,6 +242,27 @@ def pair_plot(
     max_features: int=12,
     title: str|None=None
 ) -> Figure:
+    """
+    Create a seaborn pairplot for selected features, colored by class.
+    
+    Parameters
+    ----------
+    df: pd.DataFrame
+        Input data.
+    class_col: str, optional
+        Class column name. The default is "CLASS".
+    features: list[str]|None
+        Features. The default is None.
+    max_features: int, optional
+        Maximum number of features. The default is 12.
+    title: str, optional
+        FIgure title. The default is None.
+
+    Returns
+    -------
+    Figure
+        The matplotlib Figure containing the pairplot.
+    """
     if class_col not in df.columns:
         raise KeyError(f"the class_col '{class_col}' must be in the dataframe")
 
@@ -199,6 +296,37 @@ def parallel_coords(
     title: str|None=None,
     normalize:bool=True,
 ) -> Axes:
+    """
+    Plot parallel coordinates for all features, colored by class.
+
+    Parameters
+    ----------
+    df: pd.DataFrame
+        Input data.
+    class_col: str, optional
+        Class column name. The default is "CLASS".
+    figsize: tuple[float,float], optional
+        Figure size used when `ax` is None.The default is (6, 5).
+    colormap: str, optional
+        Color map. The default is None.
+    color: str, optional
+        Fixed color to all lines. The default is None.
+    alpha: float, optional
+        Line transparency. The default is 0.5.
+    lw: float, optional
+        Line width. The default is 0.5.
+    ax: Axes|None, optional
+        Matplotlib Axes. The default is None.
+    title: str|None, optional
+        Title. The default is None.
+    normalize: bool, optional
+        If True, min-max normalize each feature before plotting. 
+        The default is True.
+
+    Returns
+    -------
+    The matplotlib Axes containing the parallel coordinates plot.
+    """
     if class_col not in df.columns:
         raise KeyError(f"the class_col '{class_col}' must be in the dataframe")
 
@@ -237,6 +365,21 @@ def _format_decimals(
     interval: pd.Interval,
     decimals: int=2,
 ) -> str:
+    """
+    Format a pandas interval.
+
+    Parameters
+    ----------
+    interval: pd.Interval
+        Interval to format.
+    decimals: int, optional
+        Number of decimals places. The default is 2.
+    
+    Returns
+    -------
+    str
+        String with interval formated.
+    """
     try:
         left = round(float(interval.left), decimals)
         right = round(float(interval.right), decimals)
@@ -251,6 +394,25 @@ def _find_dec_boundary(
     x: np.ndarray,
     n_dense: int = 500
 ) -> list[float]:
+    """
+    Find x-coordinates where the dominant class changes.
+
+    Parameters
+    ----------
+    data: pd.DataFrame
+        DataFrame whose columns are class names and whose index
+        corresponds to the original x-values.
+    x: np.ndarray
+        1-D array of original x-values
+    n_dense: int, optional
+        Number of points in the dense interpolation grid.
+        The default is 500.
+
+    Returns
+    -------
+    list[float]
+        X-coordinates where the dominant class switches
+    """
     x = np.asarray(x)
     class_names = data.columns.to_numpy()
     bounds = []
@@ -300,7 +462,33 @@ def plot_binned_curves(
     step: bool=False,
 ) -> Axes:
     """
+    Plot binned curves such as likelihood, posterior, joint, evidence or PDF.
     
+    Parameters
+    ----------
+    result: dict
+        Result dict.
+    key: str
+        Which curve to plot.
+    feature: str
+        Feature column.
+    title: str|None, optional
+        Title of plot. The default is None.
+    marker: str|None.
+        Marker style. The default is None.
+    y_label: str, optional
+        Custom y-label. The default is None.
+    y_lim: tuple[float, float]|None, optional
+        Y-axis limits. The default is None.
+    ax: Axes, optional
+        Matplotlib Axes. The default is None.
+    show_decision: bool, optional
+        Wheter show decision line. The default is False.
+    
+    Returns
+    -------
+    Axes
+        The matplotlib Axes containing the plot.
     """
     if key not in _CURVE_KEYS:
         raise ValueError(f"unknown key value: {key}, must be in {_CURVE_KEYS}")
@@ -353,7 +541,37 @@ def plot_binned_hist(
     bar_width: float=1.0,
     interval_decimals: int=2,
     ax: Axes = None,
-):
+) -> Axes:
+    """
+    Plot a binned histogram for prior probabilities or class counts.
+
+    Parameters
+    ----------
+    result: dict
+        Result dict.
+    key: str
+        Which curve to plot.
+    feature: str
+        Feature column.
+    title: str|None, optional
+        Title of plot. The default is None.
+    ylabel: str, optional
+        Custom y-label. The default is None.
+    xlabel: str, optional
+        Custom x-label. The default is None.
+    bar_width: float, optional
+        Width of the bars. The default is 1.0.
+    interval_decimals: float, optional
+        Number of decimals used when formatting interval.
+        The default is 2.
+    ax: Axes, optional
+        Matplotlib Axes. The default is None.
+
+    Returns
+    -------
+    Axes
+        The matplotlib Axes containing the histogram.
+    """
     if key not in _HIST_KEYS:
         raise ValueError(f"unknown key value: {key}, must be in {_HIST_KEYS}")
     
@@ -393,6 +611,32 @@ def plot_pdf(
     y_label: str|None=None,
     figsize: tuple[float, float]=(8, 6)
 ) -> Figure:
+    """
+    Plot class-conditional probability density functions (PDFs).
+
+    Parameters
+    ----------
+    result: dict
+        Result dict.
+    feature: str
+        Feature column.
+    title: str|None, optional
+        Title of plot. The default is None.
+    step: bool, optional
+        If True, draw step curves instead of line curves.
+        The default is False.
+    marker: str|None.
+        Marker style. The default is None.
+    ax: Axes, optional
+        Matplotlib Axes. The default is None.
+    figsize: tuple[float,float], optional
+        Figure size used when `ax` is None.The default is (8, 6).
+    
+    Returns
+    -------
+    Figure
+        The matplotlib Figure containing the PDF plot.
+    """
     fig, ax = plt.subplots(figsize=figsize)
 
     plot_binned_curves(result=result, 
@@ -415,6 +659,28 @@ def plot_posterior(
     n_cols: int=3,
     figsize: tuple[float, float]=None
 ) -> Figure:
+    """
+    Plot a grid of Bayesian decision theory plots.
+    
+    Parameters
+    ----------
+    result: dict
+        Result dict.
+    feature: str
+        Feature column.
+    keys: 
+        List of keys to plot. The default is _DEFAULT_KEYS.
+    ncols: int, optional
+        Number of columns. The default is 3.
+    figsize: tuple[float,float], optional
+        Figure size used when `ax` is None.The default is (6, 5).
+        The default is None.
+
+    Returns
+    -------
+    Figure
+        The matplotlib Figure containing the grid of plots.
+    """
     n_rows = (len(keys)+n_cols-1)//n_cols
     if figsize is None:
         figsize = (9.0 * n_cols, 7 * n_rows)
