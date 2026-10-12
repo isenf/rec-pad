@@ -236,7 +236,7 @@ helpers.print_proba_by_species(
     data=data,
     species=species,
     title=f"Conditional probability - P({cond1} | {cond2})",
-    func=proba.intersection_proba,
+    func=proba.conditional_proba,
     cond1=cond1,
     cond2=cond2
 )
@@ -244,12 +244,12 @@ helpers.print_proba_by_species(
 # %%
 
 cond1 = event_3
-cond2 = "`CLASS` == 'mRNA'"
+cond2 = "`CLASS` == 'lncRNA'"
 helpers.print_proba_by_species(
     data=data,
     species=species,
     title=f"Conditional probability - P({cond1} | {cond2})",
-    func=proba.intersection_proba,
+    func=proba.conditional_proba,
     cond1=cond1,
     cond2=cond2
 )
@@ -262,7 +262,7 @@ helpers.print_proba_by_species(
     data=data,
     species=species,
     title=f"Conditional probability - P({cond1} | {cond2})",
-    func=proba.intersection_proba,
+    func=proba.conditional_proba,
     cond1=cond1,
     cond2=cond2
 )
