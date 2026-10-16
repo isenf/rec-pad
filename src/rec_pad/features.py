@@ -1,3 +1,4 @@
+from sklearn.preprocessing import StandardScaler, MinMaxScaler
 import pandas as pd
 import re 
 
@@ -143,8 +144,10 @@ def select_features(
 
 
 def minmax_dataframe(
-    df: pd.DataFrame
-) -> pd.DataFrame:
+    df: pd.DataFrame,
+    class_col: str="CLASS",
+    return_scaler: bool=False,
+) -> pd.DataFrame|tuple[pd.DataFrame, StandardScaler]:
     """
     Normalizes each column to the range [0, 1].
 
@@ -152,10 +155,76 @@ def minmax_dataframe(
     ----------
     df: pd.Dataframe
         Input data.
+    class_col: str, optional
+        Class column name. The default is "CLASS".
+    return_scaler: bool, optional
+        If True, return the scaler. The default is False.
 
     Returns
     -------
     pd.DataFrame
-        Data normalized.
+        Normalized data or a tuple with normalized data and scaler object.
     """
-    return (df - df.min())/(df.max()-df.min())
+    df_copy = df.copy()
+
+    if class_col in df_copy.columns:
+        class_data = df[class_col]
+        df_copy = df_copy.drop(columns=class_col)
+    else:
+        class_data = None
+
+    minmax = MinMaxScaler()
+    arr_minmax = minmax.fit_transform(df_copy)
+    df_minmax = pd.DataFrame(
+        data=arr_minmax,
+        columns=df_copy.columns,
+        index=df_copy.index,
+        )
+
+    if class_data is not None:
+        df_minmax[class_col] = class_data
+    return (df_minmax, minmax) if return_scaler else df_minmax
+
+
+def scale_dataframe(
+    df: pd.DataFrame,
+    class_col: str="CLASS",
+    return_scaler: bool=False,
+) -> pd.DataFrame|tuple[pd.DataFrame, StandardScaler]:
+    """
+    Standardize numerical features using StandardScaler (z-score).
+
+    Parameters
+    ----------
+    df: pd.DataFrame
+        Input data.
+    class_col: str, optional
+        Class column name. The default is "CLASS".
+    return_scaler: bool, optional
+        If True, return the scaler. The default is False.
+
+    Returns
+    -------
+    pd.DataFrame | tuple[pd.DataFrame, StandardScaler]
+        Normalized data or a tuple with normalized data and scaler object.
+    """
+    df_copy = df.copy()
+
+    if class_col in df_copy.columns:
+        class_data = df[class_col]
+        df_copy = df_copy.drop(columns=class_col)
+    else:
+        class_data = None
+
+    scaler = StandardScaler()
+    arr_scaled = scaler.fit_transform(df_copy)
+    df_scaled = pd.DataFrame(
+        data=arr_scaled,
+        columns=df_copy.columns,
+        index=df_copy.index,
+    )
+
+    if class_data is not None:    
+        df_scaled[class_col] = class_data
+
+    return (df_scaled, scaler) if return_scaler else df_scaled
