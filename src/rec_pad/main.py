@@ -7,7 +7,8 @@ from rec_pad import (
     plots,
     proba,
     stats,
-    helpers
+    helpers, 
+    clustering
 )
 
 from pathlib import Path
@@ -301,3 +302,60 @@ for specie in species:
             subdir="posterior_grid",
             file_name=f"{specie}_{feat}.jpg",
         )
+
+# %% 
+# clustering
+
+from sklearn.metrics.cluster import contingency_matrix
+import numpy as np
+
+def purity_score(
+    y_true,
+    y_pred
+):
+    cm = contingency_matrix(y_true, y_pred)
+    return np.sum(np.amax(cm, axis=0))/np.sum(cm)
+
+# %%
+# average linkage - euclidean distance
+
+data_minmax = {}
+data_scaled = {}
+
+
+for specie in species:
+    data_minmax[specie] = features.minmax_dataframe(df=data[specie])
+    data_scaled[specie] = features.scale_dataframe(df=data[specie])
+
+# %%
+
+from sklearn.preprocessing import LabelEncoder
+X = data_minmax[species[0]].drop(columns=CLASS_COL)
+y =  data_minmax[species[0]][CLASS_COL]
+
+enc = LabelEncoder()
+y_enc = enc.fit_transform(y)
+
+# %%
+from scipy.cluster.hierarchy import linkage, dendrogram, fcluster
+euc_clustering = linkage(X, method="average", metric="euclidean")
+
+# %%
+
+n = 2
+labels_euc = fcluster(euc_clustering, t=n, criterion="maxclust")
+
+# %%
+
+purity_euc = purity_score(y_true=y_enc, y_pred=labels_euc)
+print(purity_euc)
+
+# %%
+import matplotlib.pyplot as plt
+fig, ax = plt.subplots()
+dendrogram(euc_clustering, p=10)
+# %%
+# average linkage - correlation 
+
+
+
