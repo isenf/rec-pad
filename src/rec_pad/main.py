@@ -77,7 +77,7 @@ data, votes = features.select_features(
     )
 
 print(f"votes:\n{votes}")
-
+scipy.
 # %%
 # dataset infos after feature selection
 
@@ -317,6 +317,42 @@ def purity_score(
     return np.sum(np.amax(cm, axis=0))/np.sum(cm)
 
 # %%
+
+from sklearn.metrics import pairwise_distances, silhouette_score
+
+def calc_distances(
+    X,
+    labels
+):
+    labels_unique = np.unique(labels)
+    intra_dist = []
+
+    for label in labels_unique:
+        cluster_points = X[labels == label]
+        if len(cluster_points) > 1:
+            dist_matrix = pairwise_distances(cluster_points)
+            intra_dist.append(np.mean(dist_matrix))
+    avg_intra = np.mean(intra_dist) if len(intra_dist)>0 else 0.0
+
+    centroids = np.array([X[labels == label].mean(axis=0) for label in labels_unique])
+    if len(centroids) > 1:
+        inter_dist_matrix = pairwise_distances(centroids)
+        avg_inter = np.mean(inter_dist_matrix[np.triu_indices(len(centroids), k=1)])
+    else:
+        avg_inter = 0.0
+    return avg_intra, avg_inter
+
+
+def quality_cluster(
+    X, 
+    labels,
+    return_distances: bool=False
+):
+    intra, inter = calc_distances(X, labels)
+    quality = inter/intra if intra > 0 else 0.0
+    return (quality, intra, inter) if return_distances else quality
+
+# %%
 # average linkage - euclidean distance
 
 data_minmax = {}
@@ -355,7 +391,25 @@ import matplotlib.pyplot as plt
 fig, ax = plt.subplots()
 dendrogram(euc_clustering, p=10)
 # %%
+
 # average linkage - correlation 
 
+corr_clustering = linkage(X, method="average", metric="correlation")
+labels_corr = fcluster(corr_clustering, t=n, criterion="maxclust")
 
+# %%
+purity_corr = purity_score(y_true=y_enc, y_pred=labels_corr)
+print(purity_corr)
 
+# %%
+
+intra_euc, inter_euc = calc_distances(X, labels_euc)
+
+# %%
+
+# intra_corr, inter_corr = calc_distances(X, labels_corr)
+
+quality_cluster(X, labels_euc)
+
+# %%
+silhouette_score(X, labels_euc)
