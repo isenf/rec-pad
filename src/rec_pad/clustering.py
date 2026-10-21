@@ -1,8 +1,15 @@
 import pandas as pd
 import numpy as np
-from sklearn.metrics import pairwise_distances, silhouette_score
 from sklearn.metrics.cluster import contingency_matrix
-from scipy.cluster.hierarchy import linkage, dendrogram, fcluster
+from scipy.cluster.hierarchy import linkage, fcluster
+from sklearn.metrics import (
+    pairwise_distances, 
+    silhouette_score,
+    davies_bouldin_score,
+    calinski_harabasz_score,
+    adjusted_rand_score,
+    normalized_mutual_info_score,
+)
 
 
 def purity_score(
@@ -121,11 +128,13 @@ def evaluate_clustering(
     valid_clusters = [cluster for cluster in unique_labels if cluster != -1]    # -1 -> noise
 
     if len(valid_clusters) > 1:
-        if -1 in unique_labels:
-            mask = labels!=-1
-            results["silhouette"] = silhouette_score(X[mask], labels[mask])
-        else:
-            results["silhouette"] = silhouette_score(X, labels)
+        mask = labels!=-1
+        X_ = X[mask] if isinstance(X, np.ndarray) else X.loc[mask]
+        labels_ = labels[mask]
+
+        results["silhouette"] = silhouette_score(X=X_, labels=labels_)
+        results["davies_bouldin"] = davies_bouldin_score(X=X, labels=labels_)
+        results["calinski_harabasz"] = calinski_harabasz_score(X=X, labels=labels_)
 
         quality, intra, inter = quality_cluster(X, labels, return_distances=True)
         results["quality"] = quality
@@ -136,6 +145,8 @@ def evaluate_clustering(
 
     if y_true is not None:
         results["purity"] = purity_score(y_true, labels)
+        results["nmi"] = normalized_mutual_info_score(labels_pred=labels, labels_true=y_true)
+        results["ari"] = adjusted_rand_score(labels_pred=labels, labels_true=y_true)
 
     return results
 
