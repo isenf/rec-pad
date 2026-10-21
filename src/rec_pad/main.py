@@ -340,3 +340,46 @@ df_corr = helpers.metrics_to_dataframe(results_corr)
 
 print("correlation\n")
 print(df_corr.round(4))
+
+# %%
+
+specie = data_minmax[species[0]]
+
+from sklearn.cluster import KMeans
+
+kmeans = KMeans(n_clusters=2, random_state=23)
+X, y = features.prepare_xy(specie)
+y_enc = features.encode_labels(y)
+labels = kmeans.fit_predict(X)
+
+# %%
+
+# clustering.evaluate_clustering(X=X, labels=labels, y_true=y_enc)
+
+# %%
+import numpy as np
+plots.plot_contingency_matrix(y_true=y_enc, labels=labels, true_labels_names=np.unique(y))
+
+# %%
+
+from sklearn.cluster import SpectralClustering
+
+spec = SpectralClustering(n_clusters=2, random_state=23)
+labels = spec.fit_predict(X)
+plots.plot_contingency_matrix(y_true=y_enc, labels=labels, true_labels_names=np.unique(y))
+
+
+# %%
+
+from sklearn.mixture import GaussianMixture
+
+gm = GaussianMixture(n_components=2, covariance_type="full",random_state=23)
+labels = gm.fit_predict(X)
+plots.plot_contingency_matrix(y_true=y_enc, labels=labels, true_labels_names=np.unique(y))
+
+# %%
+from sklearn.cluster import HDBSCAN
+hdbscan = HDBSCAN(min_cluster_size=250, min_samples=150)
+labels = hdbscan.fit_predict(X)
+plots.plot_contingency_matrix(y_true=y_enc, labels=labels, true_labels_names=np.unique(y))
+
