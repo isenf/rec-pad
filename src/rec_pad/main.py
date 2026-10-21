@@ -27,24 +27,20 @@ def load_and_preprocess_data():
     print("loading and preprocessing data")
     data, species = io.load_species(path=PATH)
 
-# %%
+
     # data basic infos
-    infos = stats.summarize_datasets(data=data, class_col=CLASS_COL)
-    print(infos)
+    # infos = stats.summarize_datasets(data=data, class_col=CLASS_COL)
+    # print(infos)
+    # for specie in species:
+        # print(f"\nspecie: {specie}\nmissings: {stats.missing_report(data[specie])}\n"
+            #   f"duplicate values: {stats.duplicate_count(data[specie])}")
 
-# %%
 
-    for specie in species:
-        print(f"\nspecie: {specie}\nmissings: {stats.missing_report(data[specie])}\n"
-              f"duplicate values: {stats.duplicate_count(data[specie])}")
-
-# %%
     # drop duplicate values
     for specie in species:
         data[specie] = stats.drop_duplicates(data[specie])
         # print(f"duplicate values: {duplicate_count(data[specie])}")
 
-# %%
     # feature selection
     for specie in species:
         data[specie] = features.filter_columns(
@@ -58,9 +54,8 @@ def load_and_preprocess_data():
 # %%
 
 def run_pre_selection_plots(data, species):
-    print("aaaaaaaaaaaabbbbbbbbbaa")
 
-    """for specie in species:
+    for specie in species:
         ax = plots.corr_heatmap(
             df=data[specie],
             class_col=CLASS_COL,
@@ -70,13 +65,11 @@ def run_pre_selection_plots(data, species):
         helpers.save_and_close(
             fig=ax.figure, 
             subdir="/raw/corr", 
-            file_name=f"{specie}.png")"""
+            file_name=f"{specie}.png")
 
 # %%
 
 def run_post_selection_plots(data, species):
-    print("aaaaaaaaaaaaaaaaaaaaaaaaaaa")
-    """
     # plots after processed data
     for specie in species:
         fig = plots.violin_grid(
@@ -89,7 +82,6 @@ def run_post_selection_plots(data, species):
             fig=fig.figure, 
             subdir="processed/violin",
             file_name=f"{specie}_normalized.png")
-# %%
     for specie in species:
         fig = plots.pair_plot(
             df=data[specie],
@@ -101,7 +93,6 @@ def run_post_selection_plots(data, species):
             fig=fig.figure, 
             subdir="processed/pairplot",
             file_name=f"{specie}.png")
-# %%
     for specie in species:
         fig = plots.parallel_coords(
             df=data[specie],
@@ -112,9 +103,7 @@ def run_post_selection_plots(data, species):
         helpers.save_and_close(
             fig=fig.figure, 
             subdir="processed/parallel_coords",
-            file_name=f"{specie}.png")"""
-    
-
+            file_name=f"{specie}.png")
 # %% 
 
 def run_proba_analysis(data, species):
@@ -128,7 +117,6 @@ def run_proba_analysis(data, species):
         col=CLASS_COL
         )
 
-# %%
     # events probability
     # event 1
     event_1 = "`STRG.0` < 50.0"
@@ -139,7 +127,7 @@ def run_proba_analysis(data, species):
         func=proba.event_proba,
         event=event_1
     )
-# %%
+
 # event 2
     event_2 = "`T030C.0` < 400"
     helpers.print_proba_by_species(
@@ -150,7 +138,6 @@ def run_proba_analysis(data, species):
         event=event_2
     )
 
-# %%
     # event 3:
     event_3 = "`ASPL.0` >= 1.5"
     helpers.print_proba_by_species(
@@ -161,7 +148,6 @@ def run_proba_analysis(data, species):
         event=event_3
     )
 
-# %%
     # union probability
     # event 1 or event 2
     helpers.print_proba_by_species(
@@ -172,7 +158,7 @@ def run_proba_analysis(data, species):
         cond1=event_1,
         cond2=event_2
     )
-# %%
+
     # event 1 or event 3
     helpers.print_proba_by_species(
         data=data,
@@ -182,7 +168,7 @@ def run_proba_analysis(data, species):
         cond1=event_1,
         cond2=event_3
     )
-# %%
+
     # intersection probability
     # event 1 and event 2
     helpers.print_proba_by_species(
@@ -193,7 +179,7 @@ def run_proba_analysis(data, species):
         cond1=event_1,
         cond2=event_2
     )
-# %%
+
     # event 1 and event 3
     helpers.print_proba_by_species(
         data=data,
@@ -203,7 +189,7 @@ def run_proba_analysis(data, species):
         cond1=event_1,
         cond2=event_3
     )
-# %%
+
     # conditional probability
     # P(`STRG.0` < 50.0 | `CLASS` == 'mRNA')
     cond1 = event_1
@@ -216,7 +202,7 @@ def run_proba_analysis(data, species):
         cond1=cond1,
         cond2=cond2
     )
-# %%
+
     cond1 = event_3
     cond2 = "`CLASS` == 'lncRNA'"
     helpers.print_proba_by_species(
@@ -227,7 +213,7 @@ def run_proba_analysis(data, species):
         cond1=cond1,
         cond2=cond2
     )
-# %%
+
     cond1 = event_1
     cond2 = event_2
     helpers.print_proba_by_species(
@@ -238,7 +224,7 @@ def run_proba_analysis(data, species):
         cond1=cond1,
         cond2=cond2
     )
-# %%
+
     # pdf and posterior probability
     FEATURES = ["T030C.0", "ASS.0", "ASPL.0"]
     for specie in species:
@@ -277,9 +263,10 @@ def run_proba_analysis(data, species):
 
 def run_clustering(data, species):
     print("running clustering analysis")
+    data, species = load_and_preprocess_data()
     # preprocessing
     data_scaled = {}
-    data_minmax = {}    # save the scaler objs
+    data_minmax = {}    # needs to save the scaler objs
     for specie in species:
         df_minmax, minmax_sc = features.minmax_dataframe(data[specie], 
                                                          class_col=CLASS_COL, 
@@ -295,64 +282,19 @@ def run_clustering(data, species):
         "minmax": data_minmax
     }
 
-# %%
     # average linkage - euclidean distance
     results_euc = helpers.run_hiearchical(scaling_methods, metric="euclidean", class_col=CLASS_COL)
     df_euc = helpers.metrics_to_dataframe(results_euc)
     print("average linkage - euclidean\n")
     print(df_euc.round(4))
 
-# %%
     # average linkage - correlation
     results_corr = helpers.run_hiearchical(scaling_methods, metric="correlation", class_col=CLASS_COL)
     df_corr = helpers.metrics_to_dataframe(results_corr)
     print("average linkage - correlation\n")
     print(df_corr.round(4))
 
-# %%
-
-    specie = data_scaled[species[1]]
-
-    from sklearn.cluster import KMeans
-
-    kmeans = KMeans(n_clusters=2, random_state=23)
-    X, y = features.prepare_xy(specie)
-    y_enc = features.encode_labels(y)
-    labels = kmeans.fit_predict(X)
-
-
-# %%
-
-    # clustering.evaluate_clustering(X=X, labels=labels, y_true=y_enc)
-
-    # %%
-    import numpy as np
-    plots.plot_contingency_matrix(y_true=y_enc, labels=labels, true_labels_names=np.unique(y))
-    clustering.evaluate_clustering(X=X, labels=labels, y_true=y_enc)
-    # %%
-
-    from sklearn.cluster import SpectralClustering
-
-    spec = SpectralClustering(n_clusters=2, random_state=23)
-    labels = spec.fit_predict(X)
-    plots.plot_contingency_matrix(y_true=y_enc, labels=labels, true_labels_names=np.unique(y))
-
-
-    # %%
-
-    from sklearn.mixture import GaussianMixture
-
-    gm = GaussianMixture(n_components=2, covariance_type="full",random_state=23)
-    labels_ = gm.fit_predict(X)
-    plots.plot_contingency_matrix(y_true=y_enc, labels=labels_, true_labels_names=np.unique(y))
-    clustering.evaluate_clustering(X=X, labels=labels_, y_true=y_enc)
-
-    # %%
-    from sklearn.cluster import HDBSCAN
-    hdbscan = HDBSCAN(min_cluster_size=250, min_samples=150)
-    labels = hdbscan.fit_predict(X)
-    plots.plot_contingency_matrix(y_true=y_enc, labels=labels, true_labels_names=np.unique(y))
-
+    
 # %%
 
 if __name__ == '__main__':
