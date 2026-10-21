@@ -6,6 +6,7 @@ from matplotlib.axes import Axes
 from matplotlib.figure import Figure
 from typing import Literal
 from pandas.plotting import parallel_coordinates
+from sklearn.metrics.cluster import contingency_matrix
 
 from rec_pad.features import minmax_dataframe
 
@@ -712,3 +713,36 @@ def plot_posterior(
                  fontweight="bold")
 
     return fig
+
+
+def plot_contingency_matrix(
+    y_true: np.ndarray|pd.Series,
+    labels: np.ndarray|pd.Series,
+    title:str = "Contingency Matrix",
+    true_labels_names=None
+):
+    """
+    
+    """
+    cm = contingency_matrix(y_true, labels) # normalize ?
+    if true_labels_names is not None:
+        row_labels = true_labels_names
+    else:
+        row_labels = [f"class {c}" for c in np.unique(y_true)]
+    col_labels = [f"cluster {c}" for c in np.unique(labels)]
+
+    fig, ax = plt.subplots(figsize=(8, 6))
+    sns.heatmap(cm, 
+                annot=True,
+                fmt="d",
+                cmap="Blues",
+                xticklabels=col_labels,
+                yticklabels=row_labels,
+                ax=ax,
+                cbar_kws={"label": "number of samples"}
+                )
+    ax.set_title(title)
+    ax.set_ylabel("RNA class")
+    ax.set_xlabel("clusters")
+    return fig
+
