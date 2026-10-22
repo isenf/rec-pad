@@ -719,27 +719,50 @@ def plot_contingency_matrix(
     y_true: np.ndarray|pd.Series,
     labels: np.ndarray|pd.Series,
     title:str = "Contingency Matrix",
-    true_labels_names=None
+    true_labels_names=None,
+    normalize_by: str|None=None
 ):
     """
     
     """
-    cm = contingency_matrix(y_true, labels) # normalize ?
+    cm = contingency_matrix(y_true, labels)
     if true_labels_names is not None:
         row_labels = true_labels_names
     else:
         row_labels = [f"class {c}" for c in np.unique(y_true)]
     col_labels = [f"cluster {c}" for c in np.unique(labels)]
 
+    if normalize_by == "row":
+        row_sums = cm.sum(axis=1)[:, np.newaxis]
+        cm = np.divide(cm.astype("float"), row_sums, 
+                       out=np.zeros_like(cm, dtype=float), where=row_sums!=0)
+        fmt = ".4%"
+        cbar_label = "proportion of true class"
+    elif normalize_by == "col":
+        col_sums = cm.sum(axis=0)[np.newaxis, :]
+        cm = np.divide(cm.astype("float"), col_sums, 
+                       out=np.zeros_like(cm, dtype=float), where=col_sums!=0)
+        fmt = ".4%"
+        cbar_label = "proportion of cluster"
+    elif normalize_by == "all":
+        total_sum = cm.sum()
+        cm = np.divide(cm.astype("float"), total_sum, 
+                       out=np.zeros_like(cm, dtype=float), where=total_sum!=0)
+        fmt = ".4%"
+        cbar_label = "proportion of total dataset"
+    else:
+        fmt = "d"
+        cbar_label = "number of samples"
+
     fig, ax = plt.subplots(figsize=(8, 6))
     sns.heatmap(cm, 
                 annot=True,
-                fmt="d",
+                fmt=fmt,
                 cmap="Blues",
                 xticklabels=col_labels,
                 yticklabels=row_labels,
                 ax=ax,
-                cbar_kws={"label": "number of samples"}
+                cbar_kws={"label": cbar_label}
                 )
     ax.set_title(title)
     ax.set_ylabel("RNA class")
