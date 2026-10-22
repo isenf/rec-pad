@@ -1,10 +1,10 @@
 import pandas as pd
+import numpy as np
 from typing import Callable
 import matplotlib.pyplot as plt
 from matplotlib.figure import Figure
 
-from rec_pad import io
-from rec_pad import features, clustering
+from rec_pad import io, features, clustering, plots
 
 
 def print_proba(
@@ -85,6 +85,7 @@ def run_hiearchical(
     metric: str,
     class_col: str="CLASS",
     n_clusters: int=2,
+    path_output: str=None
 ) -> dict:
     results = {
         "scaled": {},
@@ -102,6 +103,15 @@ def run_hiearchical(
             results[scale_type][specie] = clustering.evaluate_clustering(
                 X=X, labels=labels, y_true=y_enc
             )
+            if path_output is not None:
+                 fig = plots.plot_contingency_matrix(y_true=y_enc, 
+                                                     labels=labels, 
+                                                     true_labels_names=np.unique(y),
+                                                     title=f"Contingency Matrix - {metric} {scale_type}"
+                                                     )
+                 save_and_close(fig=fig, path_output=path_output, 
+                                subdir=f"clustering/hierarchical/{metric}/{scale_type}",
+                                file_name=f"{specie}.png")
 
     return results
 
