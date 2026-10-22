@@ -2,6 +2,7 @@ import pandas as pd
 import numpy as np
 from sklearn.metrics.cluster import contingency_matrix
 from scipy.cluster.hierarchy import linkage, fcluster
+from sklearn.cluster import KMeans
 from sklearn.metrics import (
     pairwise_distances, 
     silhouette_score,
@@ -133,8 +134,8 @@ def evaluate_clustering(
         labels_ = labels[mask]
 
         results["silhouette"] = silhouette_score(X=X_, labels=labels_)
-        results["davies_bouldin"] = davies_bouldin_score(X=X, labels=labels_)
-        results["calinski_harabasz"] = calinski_harabasz_score(X=X, labels=labels_)
+        results["davies_bouldin"] = davies_bouldin_score(X=X_, labels=labels_)
+        results["calinski_harabasz"] = calinski_harabasz_score(X=X_, labels=labels_)
 
         quality, intra, inter = quality_cluster(X, labels, return_distances=True)
         results["quality"] = quality
@@ -190,3 +191,40 @@ def hierarchical_clustering(
 
     labels = fcluster(linkage_matrix, t=n_clusters, criterion=criterion)
     return labels, linkage_matrix
+
+
+def kmeans_clustering(
+    X: np.ndarray|pd.DataFrame,
+    n_clusters: int=2,
+    random_state: int=23,
+    n_init: int|str="auto",
+    init:str="k-means++"
+) -> tuple[np.ndarray, KMeans]:
+    """
+    Perform K-Means clustering using scikit-learn.
+
+    Parameters
+    ----------
+    X: np.ndarray | pd.DataFrame
+        Feature matrix.
+    n_clusters: int, optional
+        Number of clusters. The default is 2.
+    random_state: int, optional
+        Random seed. The default is 23.
+    init: str, optional
+        Method for initialization.
+        The default is "k-means++"
+    n_init: int|str, optional
+        Number of times the k- means algorithm is run with different centroid seeds.
+        The default is "auto".
+        
+    Returns
+    -------
+    tuple[np.ndarray, KMeans]
+        Tuple with cluster labels and KMeans model.
+    """
+    kmeans = KMeans(n_clusters=n_clusters, random_state=random_state,
+                    init=init, n_init=n_init)
+    labels = kmeans.fit_predict(X=X)
+
+    return labels, kmeans
