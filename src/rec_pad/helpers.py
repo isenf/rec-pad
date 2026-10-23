@@ -107,11 +107,12 @@ def run_hiearchical(
                  fig = plots.plot_contingency_matrix(y_true=y_enc, 
                                                      labels=labels, 
                                                      true_labels_names=np.unique(y),
-                                                     title=f"Contingency Matrix - {metric} {scale_type}"
+                                                     title=f"Contingency Matrix - {metric} {scale_type}",
+                                                     normalize_by="col"
                                                      )
                  save_and_close(fig=fig, path_output=path_output, 
-                                subdir=f"clustering/hierarchical/{metric}/{scale_type}",
-                                file_name=f"{specie}.png")
+                                subdir=f"clustering/hierarchical/normalized_col/{metric}/{scale_type}",
+                                file_name=f"{specie}.jpg")
 
     return results
 
