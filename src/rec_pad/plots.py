@@ -7,8 +7,10 @@ from matplotlib.figure import Figure
 from typing import Literal
 from pandas.plotting import parallel_coordinates
 from sklearn.metrics.cluster import contingency_matrix
+from sklearn.metrics import silhouette_score
 
 from rec_pad.features import minmax_dataframe
+from rec_pad.clustering import kmeans_clustering
 
 
 _DEFAULT_YLABELS = {
@@ -769,3 +771,51 @@ def plot_contingency_matrix(
     ax.set_xlabel("clusters")
     return fig
 
+
+def plot_elbow_method(
+    X: np.ndarray|pd.DataFrame,
+    max_k: int=10,
+    random_state: int=23,
+    figsize: tuple[float, float]=(10, 5),
+    title: str="K-Means Elbow Method",
+    ax:Axes=None
+) -> Axes:
+    inertias = []
+    silhouettes = []
+    k_range = range(2, max_k+1)
+
+    for k in k_range:
+        labels, kmeans = kmeans_clustering(
+            X=X,
+            n_clusters=k,
+            random_state=random_state,
+            init="k-means++",
+            n_init=10
+        )
+        inertias.append(kmeans.inertia_)
+        silhouettes.append(silhouette_score(X=X, labels=labels))
+
+    if ax is None:
+        fig, ax1 = plt.subplots(figsize=figsize)
+    else:
+        ax1 = ax
+
+    color1 = "tab:red"
+    ax1.set_xlabel("number of clusters (k)")
+    ax1.set_ylabel("inertia (WCSS)", color=color1)
+    line1 = ax1.plot(k_range, inertias, marker="o", color=color1, 
+                     label="inertia", linewidth=2)
+    ax1.tick_params(axis="y", labelcolor=color1)
+
+    ax2 = ax1.twinx()
+    color2 = "tab:blue"
+    ax2.set_ylabel("silhouette score", color=color2)
+    line2 = ax2.plot(k_range, silhouettes, marker="D", color=color2,
+                     label="silhouette", linewidth=2, linestyle="--")
+    ax2.tick_params(axis="y", labelcolor=color2)
+
+    lines = line1+line2
+    ax1.legend(lines, [l.get_label() for l in lines])
+    plt.title(title)
+    ax1.grid(True, alpha=0.3)
+    return ax1   
