@@ -117,6 +117,43 @@ def run_hiearchical(
     return results
 
 
+def run_kmeans(
+    data_dicts: dict,
+    class_col: str="CLASS",
+    random_state: int=23,
+    n_clusters: int=2,
+    path_output: str=None
+) -> dict:
+    results = {
+        "scaled": {},
+        "minmax": {}
+    }
+
+    for scale_type, data_dict in data_dicts.items():
+        for specie in data_dict.keys():
+            X, y = features.prepare_xy(data_dict[specie], class_col=class_col)
+            y_enc = features.encode_labels(y)
+
+            labels, _ = clustering.kmeans_clustering(
+                X=X, random_state=random_state, n_init=10, init="k-means++", n_clusters=n_clusters
+            )
+            results[scale_type][specie] = clustering.evaluate_clustering(
+                X=X, labels=labels, y_true=y_enc
+            )
+            if path_output is not None:
+                 fig = plots.plot_contingency_matrix(y_true=y_enc, 
+                                                     labels=labels, 
+                                                     true_labels_names=np.unique(y),
+                                                     title=f"Contingency Matrix - {scale_type}",
+                                                     normalize_by="col"
+                                                     )
+                 save_and_close(fig=fig, path_output=path_output, 
+                                subdir=f"clustering/kmeans/contingency_matrix/normalized_col/{scale_type}",
+                                file_name=f"{specie}.jpg")
+
+    return results
+
+
 def metrics_to_dataframe(
     results_dict: dict[str, dict]
 ) -> pd.DataFrame:
