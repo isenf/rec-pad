@@ -4,7 +4,7 @@ from typing import Callable
 import matplotlib.pyplot as plt
 from matplotlib.figure import Figure
 
-from rec_pad import io, features, clustering, plots
+from rec_pad import io, features, clustering, plots, helpers
 
 
 def print_proba(
@@ -166,3 +166,36 @@ def metrics_to_dataframe(
             records.append(row)
     df = pd.DataFrame(records)
     return df.set_index(["scale", "specie"])
+
+
+def run_elbow_mmethod(
+    data_minmax: dict[str, pd.DataFrame],
+    data_scaled: dict[str, pd.DataFrame],
+    species: list[str],
+    path_output: str,
+    class_col: str="CLASS",
+    max_k: int=10,
+    figsize: tuple[float, float]=(18, 6)
+):
+    for specie in species:
+        X_minmax, y = features.prepare_xy(data_minmax[specie], class_col=class_col)
+        X_scaled, _ = features.prepare_xy(data_scaled[specie], class_col=class_col)
+
+        fig, axes = plt.subplots(1, 2, figsize=figsize)
+        plots.plot_elbow_method(
+            X_minmax,
+            max_k=max_k,
+            title="Elbow Method (MinMax Scaled)",
+            ax=axes[0]
+        )
+        plots.plot_elbow_method(
+            X_scaled,
+            max_k=max_k,
+            title="Elbow Method (Standard Scaled)",
+            ax=axes[1]
+        )
+        fig.suptitle(f"K-Means Elbow Method - {specie}", fontweight="bold")
+        fig.tight_layout()
+        save_and_close(fig=fig, subdir="clustering/kmeans/elbow_method",
+                       path_output=path_output, file_name=f"{specie}.jpg")
+    
