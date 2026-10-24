@@ -815,7 +815,8 @@ def plot_elbow_method(
     ax2.tick_params(axis="y", labelcolor=color2)
 
     lines = line1+line2
+    ax1.set_xticks(range(0, max_k+1))
     ax1.legend(lines, [l.get_label() for l in lines])
-    plt.title(title)
+    ax1.set_title(title)
     ax1.grid(True, alpha=0.3)
     return ax1   
