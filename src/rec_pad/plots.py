@@ -8,6 +8,7 @@ from typing import Literal
 from pandas.plotting import parallel_coordinates
 from sklearn.metrics.cluster import contingency_matrix
 from sklearn.metrics import silhouette_score
+from scipy.cluster.hierarchy import dendrogram
 
 from rec_pad.features import minmax_dataframe
 from rec_pad.clustering import kmeans_clustering
@@ -820,3 +821,43 @@ def plot_elbow_method(
     ax1.set_title(title)
     ax1.grid(True, alpha=0.3)
     return ax1   
+
+
+def plot_dendrogram(
+    linkage_matrix: np.ndarray,
+    y_true: np.ndarray|list,
+    ax: Axes=None,
+    figsize: tuple[float, float]=(12, 6),
+    title: str="Hierarchical Clustering Dendrogram", 
+    truncate_mode: str|None="lastp",
+    p: int=30,
+    **kwargs
+) -> Axes:
+    if ax is None:
+        _, ax = plt.subplots(figsize=figsize)
+
+    d = dendrogram(
+        linkage_matrix, ax=ax, truncate_mode=truncate_mode,
+        p=p, no_labels=True, **kwargs
+        )
+
+    y_true_arr = np.array(y_true)
+    leaf_indices = d["leaves"]
+    real_labels = [y_true_arr[idx] for idx in leaf_indices]
+
+    x_positions = np.arange(5, 5 + 10 * len(real_labels), 10)
+    ax.set_xticks(x_positions)
+    ax.set_xticklabels(real_labels, fontsize=8, rotation=90)
+    unique_classes = np.sort(np.unique(y_true_arr))
+    colors = ["tab:blue", "tab:orange"]
+    color_map = {c: colors[i%len(colors)] for i, c in enumerate(unique_classes)}
+
+    for tick_label, c in zip(ax.get_xticklabels(), real_labels):
+        tick_label.set_color(color_map[c])
+
+    ax.set_title(title)
+    ax.set_xlabel("samples")
+    ax.set_ylabel("distance")
+    ax.grid(True, alpha=0.3, axis="y")
+
+    return ax
