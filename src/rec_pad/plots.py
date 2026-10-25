@@ -733,7 +733,9 @@ def plot_contingency_matrix(
         row_labels = true_labels_names
     else:
         row_labels = [f"class {c}" for c in np.unique(y_true)]
-    col_labels = [f"cluster {c}" for c in np.unique(labels)]
+    col_unique = sorted(np.unique(labels))
+    offset = 1 - col_unique[0]
+    col_labels = [f"cluster {c+offset}" for c in col_unique]
 
     if normalize_by == "row":
         row_sums = cm.sum(axis=1)[:, np.newaxis]
@@ -765,6 +767,7 @@ def plot_contingency_matrix(
                 xticklabels=col_labels,
                 yticklabels=row_labels,
                 ax=ax,
+                annot_kws={"size":14},
                 cbar_kws={"label": cbar_label}
                 )
     ax.set_title(title)
