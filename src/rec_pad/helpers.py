@@ -97,22 +97,28 @@ def run_hiearchical(
             X, y = features.prepare_xy(data_dict[specie], class_col=class_col)
             y_enc = features.encode_labels(y)
 
-            labels, _ = clustering.hierarchical_clustering(
+            labels, linkage_matrix = clustering.hierarchical_clustering(
                 X=X, metric=metric, method="average", n_clusters=n_clusters
             )
             results[scale_type][specie] = clustering.evaluate_clustering(
                 X=X, labels=labels, y_true=y_enc
             )
             if path_output is not None:
-                 fig = plots.plot_contingency_matrix(y_true=y_enc, 
+                fig = plots.plot_contingency_matrix(y_true=y_enc, 
                                                      labels=labels, 
                                                      true_labels_names=np.unique(y),
                                                      title=f"Contingency Matrix - {metric} {scale_type}",
                                                      normalize_by="col"
                                                      )
-                 save_and_close(fig=fig, path_output=path_output, 
-                                subdir=f"clustering/hierarchical/normalized_col/{metric}/{scale_type}",
+                save_and_close(fig=fig, path_output=path_output, 
+                                subdir=f"clustering/hierarchical/contingency_matrix/normalized_col/{metric}/{scale_type}",
                                 file_name=f"{specie}.jpg")
+                ax = plots.plot_dendrogram(linkage_matrix=linkage_matrix, y_true=y, figsize=(18, 6),
+                                            title=f"Hierarchical Clustering - {specie}", truncate_mode=None)
+                ax.figure.tight_layout()
+                save_and_close(fig=ax.figure, path_output=path_output,
+                               subdir=f"clustering/hierarchical/dendrogram/{scale_type}",
+                               file_name=f"{specie}.jpg")
 
     return results
 
