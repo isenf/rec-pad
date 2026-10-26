@@ -1,9 +1,11 @@
 import pandas as pd
+import numpy as np
 from typing import Callable
 import matplotlib.pyplot as plt
 from matplotlib.figure import Figure
 
-from rec_pad import io
+
+from rec_pad import io, features, clustering, plots, helpers
 
 
 def print_proba(
@@ -77,3 +79,130 @@ def save_and_close(
     io.save_fig(fig=fig, path=f"{path_output}/{subdir}", 
                 file_name=file_name, dpi=250)
     plt.close(fig)
+
+
+def run_hiearchical(
+    data_dicts: dict,
+    metric: str,
+    class_col: str="CLASS",
+    n_clusters: int=2,
+    path_output: str=None
+) -> dict:
+    results = {
+        "scaled": {},
+        "minmax": {}
+    }
+
+    for scale_type, data_dict in data_dicts.items():
+        for specie in data_dict.keys():
+            X, y = features.prepare_xy(data_dict[specie], class_col=class_col)
+            y_enc = features.encode_labels(y)
+
+            labels, linkage_matrix = clustering.hierarchical_clustering(
+                X=X, metric=metric, method="average", n_clusters=n_clusters
+            )
+            results[scale_type][specie] = clustering.evaluate_clustering(
+                X=X, labels=labels, y_true=y_enc
+            )
+            if path_output is not None:
+                fig = plots.plot_contingency_matrix(y_true=y_enc, 
+                                                     labels=labels, 
+                                                     true_labels_names=np.unique(y),
+                                                     title=f"Contingency Matrix - {metric} {scale_type}",
+                                                     normalize_by="col"
+                                                     )
+                save_and_close(fig=fig, path_output=path_output, 
+                                subdir=f"clustering/hierarchical/contingency_matrix/normalized_col/{metric}/{scale_type}",
+                                file_name=f"{specie}.jpg")
+                ax = plots.plot_dendrogram(linkage_matrix=linkage_matrix, y_true=y, figsize=(18, 6),
+                                            title=f"Hierarchical Clustering - {specie}", truncate_mode=None)
+                ax.figure.tight_layout()
+                save_and_close(fig=ax.figure, path_output=path_output,
+                               subdir=f"clustering/hierarchical/dendrogram/{scale_type}",
+                               file_name=f"{specie}.jpg")
+
+    return results
+
+
+def run_kmeans(
+    data_dicts: dict,
+    class_col: str="CLASS",
+    random_state: int=23,
+    n_clusters: int=2,
+    path_output: str=None
+) -> dict:
+    results = {
+        "scaled": {},
+        "minmax": {}
+    }
+
+    for scale_type, data_dict in data_dicts.items():
+        for specie in data_dict.keys():
+            X, y = features.prepare_xy(data_dict[specie], class_col=class_col)
+            y_enc = features.encode_labels(y)
+
+            labels, _ = clustering.kmeans_clustering(
+                X=X, random_state=random_state, n_init=10, init="k-means++", n_clusters=n_clusters
+            )
+            results[scale_type][specie] = clustering.evaluate_clustering(
+                X=X, labels=labels, y_true=y_enc
+            )
+            if path_output is not None:
+                 fig = plots.plot_contingency_matrix(y_true=y_enc, 
+                                                     labels=labels, 
+                                                     true_labels_names=np.unique(y),
+                                                     title=f"Contingency Matrix - {scale_type}",
+                                                     normalize_by="col"
+                                                     )
+                 save_and_close(fig=fig, path_output=path_output, 
+                                subdir=f"clustering/kmeans/contingency_matrix/normalized_col/{scale_type}",
+                                file_name=f"{specie}.jpg")
+
+    return results
+
+
+def metrics_to_dataframe(
+    results_dict: dict[str, dict]
+) -> pd.DataFrame:
+    records = []
+
+    for scale_type, specie_dict in results_dict.items():
+        for specie, metrics_dict in specie_dict.items():
+            row = {"scale": scale_type, "specie": specie}
+            row.update(metrics_dict)
+            records.append(row)
+    df = pd.DataFrame(records)
+    return df.set_index(["scale", "specie"])
+
+
+def run_elbow_mmethod(
+    data_minmax: dict[str, pd.DataFrame],
+    data_scaled: dict[str, pd.DataFrame],
+    species: list[str],
+    path_output: str,
+    class_col: str="CLASS",
+    max_k: int=10,
+    figsize: tuple[float, float]=(18, 6)
+):
+    for specie in species:
+        X_minmax, y = features.prepare_xy(data_minmax[specie], class_col=class_col)
+        X_scaled, _ = features.prepare_xy(data_scaled[specie], class_col=class_col)
+
+        fig, axes = plt.subplots(1, 2, figsize=figsize)
+        plots.plot_elbow_method(
+            X_minmax,
+            max_k=max_k,
+            title="Elbow Method (MinMax Scaled)",
+            ax=axes[0]
+        )
+        plots.plot_elbow_method(
+            X_scaled,
+            max_k=max_k,
+            title="Elbow Method (Standard Scaled)",
+            ax=axes[1]
+        )
+        fig.suptitle(f"K-Means Elbow Method - {specie}", fontweight="bold")
+        fig.tight_layout()
+        save_and_close(fig=fig, subdir="clustering/kmeans/elbow_method",
+                       path_output=path_output, file_name=f"{specie}.jpg")
+    

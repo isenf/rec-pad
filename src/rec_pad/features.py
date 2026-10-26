@@ -1,4 +1,7 @@
 import pandas as pd
+from sklearn.preprocessing import StandardScaler, MinMaxScaler, LabelEncoder
+import pandas as pd
+import numpy as np
 import re 
 
 def filter_columns(
@@ -143,8 +146,10 @@ def select_features(
 
 
 def minmax_dataframe(
-    df: pd.DataFrame
-) -> pd.DataFrame:
+    df: pd.DataFrame,
+    class_col: str="CLASS",
+    return_scaler: bool=False,
+) -> pd.DataFrame|tuple[pd.DataFrame, MinMaxScaler]:
     """
     Normalizes each column to the range [0, 1].
 
@@ -152,10 +157,129 @@ def minmax_dataframe(
     ----------
     df: pd.Dataframe
         Input data.
+    class_col: str, optional
+        Class column name. The default is "CLASS".
+    return_scaler: bool, optional
+        If True, return the scaler. The default is False.
+>>>>>>> feat/clustering
 
     Returns
     -------
     pd.DataFrame
         Data normalized.
     """
-    return (df - df.min())/(df.max()-df.min())
+    df_copy = df.copy()
+
+    if class_col in df_copy.columns:
+        class_data = df[class_col]
+        df_copy = df_copy.drop(columns=class_col)
+    else:
+        class_data = None
+
+    minmax = MinMaxScaler()
+    arr_minmax = minmax.fit_transform(df_copy)
+    df_minmax = pd.DataFrame(
+        data=arr_minmax,
+        columns=df_copy.columns,
+        index=df_copy.index,
+        )
+    
+    if class_data is not None:
+        df_minmax[class_col] = class_data
+    return (df_minmax, minmax) if return_scaler else df_minmax
+
+
+def scale_dataframe(
+    df: pd.DataFrame,
+    class_col: str="CLASS",
+    return_scaler: bool=False,
+) -> pd.DataFrame|tuple[pd.DataFrame, StandardScaler]:
+    """
+    Standardize numerical features using StandardScaler (z-score).
+
+    Parameters
+    ----------
+    df: pd.DataFrame
+        Input data.
+    class_col: str, optional
+        Class column name. The default is "CLASS".
+    return_scaler: bool, optional
+        If True, return the scaler. The default is False.
+
+    Returns
+    -------
+    pd.DataFrame | tuple[pd.DataFrame, StandardScaler]
+        Normalized data or a tuple with normalized data and scaler object.
+    """
+    df_copy = df.copy()
+
+    if class_col in df_copy.columns:
+        class_data = df[class_col]
+        df_copy = df_copy.drop(columns=class_col)
+    else:
+        class_data = None
+
+    scaler = StandardScaler()
+    arr_scaled = scaler.fit_transform(df_copy)
+    df_scaled = pd.DataFrame(
+        data=arr_scaled,
+        columns=df_copy.columns,
+        index=df_copy.index,
+    )
+
+    if class_data is not None:    
+        df_scaled[class_col] = class_data
+
+    return (df_scaled, scaler) if return_scaler else df_scaled
+
+
+def prepare_xy(
+    df: pd.DataFrame,
+    class_col: str="CLASS"
+) -> tuple[pd.DataFrame, pd.Series]:
+    """
+    Separate the dataset into features (X) and target labels (y).
+
+    Parameters
+    ----------
+    df: pd.DataFrame
+        Input data.
+    class_col: str, optional
+        Class column name. The default is "CLASS".
+
+    Returns
+    -------
+    tuple[pd.DataFrame, pd.Series]
+        Tuple with feature matrix and target labels.
+    """
+    X = df.drop(columns=class_col)
+    y = df[class_col]
+
+    return X, y
+
+
+def encode_labels(
+    y: pd.Series | np.ndarray,
+    return_encoder: bool=False
+) -> np.ndarray| tuple[np.ndarray, LabelEncoder]:
+    """
+    Encode target labels into integers.
+
+    Parameters
+    ----------
+    y: pd.Series | np.ndarray
+        Target labels.
+    return_encoder: bool, optional
+        If True, return the encoder.
+        The default is False.
+    
+    Returns
+    -------
+    np.ndarray| tuple[np.ndarray, LabelEncoder]
+        Encoded labels or a tuple with (encoded labels, encoder).
+    """
+    enc = LabelEncoder()
+    y_enc = enc.fit_transform(y)
+
+    return (y_enc, enc) if return_encoder else y_enc
+>>>>>>> feat/clustering

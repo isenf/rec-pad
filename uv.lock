@@ -936,6 +936,10 @@ dependencies = [
     { name = "numpy" },
     { name = "pandas" },
     { name = "scikit-learn" },
+<<<<<<< HEAD
+=======
+    { name = "scipy" },
+>>>>>>> feat/clustering
     { name = "seaborn" },
 ]
 
@@ -954,6 +958,10 @@ requires-dist = [
     { name = "numpy", specifier = ">=2.5.3" },
     { name = "pandas", specifier = ">=3.0.5" },
     { name = "scikit-learn", specifier = ">=1.9.1" },
+<<<<<<< HEAD
+=======
+    { name = "scipy", specifier = ">=1.18.1" },
+>>>>>>> feat/clustering
     { name = "seaborn", specifier = ">=0.13.2" },
 ]
 provides-extras = ["notebook"]

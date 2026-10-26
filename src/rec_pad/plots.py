@@ -6,8 +6,12 @@ from matplotlib.axes import Axes
 from matplotlib.figure import Figure
 from typing import Literal
 from pandas.plotting import parallel_coordinates
+from sklearn.metrics.cluster import contingency_matrix
+from sklearn.metrics import silhouette_score
+from scipy.cluster.hierarchy import dendrogram
 
 from rec_pad.features import minmax_dataframe
+from rec_pad.clustering import kmeans_clustering
 
 
 _DEFAULT_YLABELS = {
@@ -712,3 +716,151 @@ def plot_posterior(
                  fontweight="bold")
 
     return fig
+
+
+def plot_contingency_matrix(
+    y_true: np.ndarray|pd.Series,
+    labels: np.ndarray|pd.Series,
+    title:str = "Contingency Matrix",
+    true_labels_names=None,
+    normalize_by: str|None=None
+):
+    """
+    
+    """
+    cm = contingency_matrix(y_true, labels)
+    if true_labels_names is not None:
+        row_labels = true_labels_names
+    else:
+        row_labels = [f"class {c}" for c in np.unique(y_true)]
+    col_unique = sorted(np.unique(labels))
+    offset = 1 - col_unique[0]
+    col_labels = [f"cluster {c+offset}" for c in col_unique]
+
+    if normalize_by == "row":
+        row_sums = cm.sum(axis=1)[:, np.newaxis]
+        cm = np.divide(cm.astype("float"), row_sums, 
+                       out=np.zeros_like(cm, dtype=float), where=row_sums!=0)
+        fmt = ".4%"
+        cbar_label = "proportion of true class"
+    elif normalize_by == "col":
+        col_sums = cm.sum(axis=0)[np.newaxis, :]
+        cm = np.divide(cm.astype("float"), col_sums, 
+                       out=np.zeros_like(cm, dtype=float), where=col_sums!=0)
+        fmt = ".4%"
+        cbar_label = "proportion of cluster"
+    elif normalize_by == "all":
+        total_sum = cm.sum()
+        cm = np.divide(cm.astype("float"), total_sum, 
+                       out=np.zeros_like(cm, dtype=float), where=total_sum!=0)
+        fmt = ".4%"
+        cbar_label = "proportion of total dataset"
+    else:
+        fmt = "d"
+        cbar_label = "number of samples"
+
+    fig, ax = plt.subplots(figsize=(8, 6))
+    sns.heatmap(cm, 
+                annot=True,
+                fmt=fmt,
+                cmap="Blues",
+                xticklabels=col_labels,
+                yticklabels=row_labels,
+                ax=ax,
+                annot_kws={"size":14},
+                cbar_kws={"label": cbar_label}
+                )
+    ax.set_title(title)
+    ax.set_ylabel("RNA class")
+    ax.set_xlabel("clusters")
+    return fig
+
+
+def plot_elbow_method(
+    X: np.ndarray|pd.DataFrame,
+    max_k: int=10,
+    random_state: int=23,
+    figsize: tuple[float, float]=(10, 5),
+    title: str="K-Means Elbow Method",
+    ax:Axes=None
+) -> Axes:
+    inertias = []
+    silhouettes = []
+    k_range = range(2, max_k+1)
+
+    for k in k_range:
+        labels, kmeans = kmeans_clustering(
+            X=X,
+            n_clusters=k,
+            random_state=random_state,
+            init="k-means++",
+            n_init=10
+        )
+        inertias.append(kmeans.inertia_)
+        silhouettes.append(silhouette_score(X=X, labels=labels))
+
+    if ax is None:
+        fig, ax1 = plt.subplots(figsize=figsize)
+    else:
+        ax1 = ax
+
+    color1 = "tab:red"
+    ax1.set_xlabel("number of clusters (k)")
+    ax1.set_ylabel("inertia (WCSS)", color=color1)
+    line1 = ax1.plot(k_range, inertias, marker="o", color=color1, 
+                     label="inertia", linewidth=2)
+    ax1.tick_params(axis="y", labelcolor=color1)
+
+    ax2 = ax1.twinx()
+    color2 = "tab:blue"
+    ax2.set_ylabel("silhouette score", color=color2)
+    line2 = ax2.plot(k_range, silhouettes, marker="D", color=color2,
+                     label="silhouette", linewidth=2, linestyle="--")
+    ax2.tick_params(axis="y", labelcolor=color2)
+
+    lines = line1+line2
+    ax1.set_xticks(range(0, max_k+1))
+    ax1.legend(lines, [l.get_label() for l in lines])
+    ax1.set_title(title)
+    ax1.grid(True, alpha=0.3)
+    return ax1   
+
+
+def plot_dendrogram(
+    linkage_matrix: np.ndarray,
+    y_true: np.ndarray|list,
+    ax: Axes=None,
+    figsize: tuple[float, float]=(12, 6),
+    title: str="Hierarchical Clustering Dendrogram", 
+    truncate_mode: str|None="lastp",
+    p: int=30,
+    **kwargs
+) -> Axes:
+    if ax is None:
+        _, ax = plt.subplots(figsize=figsize)
+
+    d = dendrogram(
+        linkage_matrix, ax=ax, truncate_mode=truncate_mode,
+        p=p, no_labels=True, **kwargs
+        )
+
+    y_true_arr = np.array(y_true)
+    leaf_indices = d["leaves"]
+    real_labels = [y_true_arr[idx] for idx in leaf_indices]
+
+    x_positions = np.arange(5, 5 + 10 * len(real_labels), 10)
+    ax.set_xticks(x_positions)
+    ax.set_xticklabels(real_labels, fontsize=8, rotation=90)
+    unique_classes = np.sort(np.unique(y_true_arr))
+    colors = ["tab:blue", "tab:orange"]
+    color_map = {c: colors[i%len(colors)] for i, c in enumerate(unique_classes)}
+
+    for tick_label, c in zip(ax.get_xticklabels(), real_labels):
+        tick_label.set_color(color_map[c])
+
+    ax.set_title(title)
+    ax.set_xlabel("samples")
+    ax.set_ylabel("distance")
+    ax.grid(True, alpha=0.3, axis="y")
+
+    return ax
