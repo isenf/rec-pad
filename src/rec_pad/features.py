@@ -161,7 +161,6 @@ def minmax_dataframe(
         Class column name. The default is "CLASS".
     return_scaler: bool, optional
         If True, return the scaler. The default is False.
->>>>>>> feat/clustering
 
     Returns
     -------
@@ -282,4 +281,3 @@ def encode_labels(
     y_enc = enc.fit_transform(y)
 
     return (y_enc, enc) if return_encoder else y_enc
->>>>>>> feat/clustering
