@@ -23,7 +23,7 @@ pip install uv
 1. **Clone the repository:**
 
 ```bash
-git@github.com:isenf/rec-pad.git
+git clone git@github.com:isenf/rec-pad.git
 cd rec-pad
 ```
 
@@ -47,7 +47,18 @@ For Windows:
 
 ## Running the project
 
-Run the main script using `uv`:
+Run the full pipeline on the bundled sample data:
 ```bash
-uv run src/rec_pad/main.py
+uv run src/rec_pad/main.py --task all
 ```
+
+Run only exploratory data analisys:
+```bash
+uv run src/rec_pad/main.py --task eda
+```
+
+Show CLI help:
+```bash
+uv run src/rec_pad/main.py --help
+```
+Options available: all, eda, proba, cluster
