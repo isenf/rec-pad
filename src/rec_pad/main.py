@@ -306,8 +306,31 @@ def run_clustering(data, species):
     df_kmeans = helpers.metrics_to_dataframe(results_dict=results)
     print("kmeans\n")
     print(df_kmeans.round(4))
- 
-    
+
+# %%
+
+def run_classification():
+    data, species = load_and_preprocess_data()
+
+    from sklearn.model_selection import train_test_split
+    from sklearn.ensemble import RandomForestClassifier
+    from sklearn.metrics import accuracy_score, classification_report
+
+    i = 2
+    X, y = features.prepare_xy(data[species[i]], class_col=CLASS_COL)
+
+    X_train, X_test, y_train, y_test = train_test_split(X, y,
+        test_size=0.2, random_state=7
+    )
+    rf = RandomForestClassifier(n_estimators=100, random_state=7)
+    rf.fit(X_train, y_train)
+    y_pred = rf.predict(X_test)
+
+    print(accuracy_score(y_true=y_test, y_pred=y_pred))
+    print(classification_report(y_true=y_test, y_pred=y_pred, digits=4))
+
+
+run_classification()
 # %%
 
 if __name__ == '__main__':
