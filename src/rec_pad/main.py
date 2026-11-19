@@ -314,23 +314,53 @@ def run_classification():
 
     from sklearn.model_selection import train_test_split
     from sklearn.ensemble import RandomForestClassifier
+    from sklearn.preprocessing import MinMaxScaler, StandardScaler
+    from sklearn import svm
+    from sklearn.dummy import DummyClassifier
+    from sklearn.neural_network import MLPClassifier
     from sklearn.metrics import accuracy_score, classification_report
 
-    i = 2
+    i = 0
     X, y = features.prepare_xy(data[species[i]], class_col=CLASS_COL)
 
     X_train, X_test, y_train, y_test = train_test_split(X, y,
         test_size=0.2, random_state=7
     )
+    minmax = MinMaxScaler()
+    X_train_minmax = minmax.fit_transform(X_train)
+    X_test_minmax = minmax.transform(X_test)
+    scaler = StandardScaler()
+    X_train_scaled = scaler.fit_transform(X_train)
+    X_test_scaled = scaler.transform(X_test)
+    # SVM = svm.SVC(kernel="rbf")
+    # nn = MLPClassifier(random_state=23)
+    # nn.fit(X_train_scaled, y_train)
+    # nn_pred = nn.predict(X_test_scaled)
+
+    # SVM.fit(X_train_scaled, y_train)
+    # svm_pred = SVM.predict(X_test_scaled)
     rf = RandomForestClassifier(n_estimators=100, random_state=7)
     rf.fit(X_train, y_train)
     y_pred = rf.predict(X_test)
 
-    print(accuracy_score(y_true=y_test, y_pred=y_pred))
-    print(classification_report(y_true=y_test, y_pred=y_pred, digits=4))
+    dummy = DummyClassifier(strategy="prior", random_state=23)
+    dummy.fit(X=X_train_minmax, y=y_train)
+    dummy_pred = dummy.predict(X_test_minmax)
 
+    print("Dummy classifier - Base error")
+    print("accuracy", accuracy_score(y_true=dummy_pred, y_pred=y_pred))
+    print(classification_report(y_true=dummy_pred, y_pred=y_pred, digits=4, zero_division=0))
+
+    print("Random forest")
+    print("accuracy", accuracy_score(y_true=y_test, y_pred=y_pred))
+    print(classification_report(y_true=y_test, y_pred=y_pred, digits=4, zero_division=0))
+    # print(accuracy_score(y_true=y_test, y_pred=svm_pred))
+    # print(classification_report(y_true=y_test, y_pred=svm_pred, digits=4))
+    # print(accuracy_score(y_true=y_test, y_pred=nn_pred))
+    # print(classification_report(y_true=y_test, y_pred=nn_pred, digits=4))
 
 run_classification()
+
 # %%
 
 if __name__ == '__main__':
