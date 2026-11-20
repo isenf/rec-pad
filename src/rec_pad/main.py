@@ -314,16 +314,23 @@ def run_classification():
 
     from sklearn.model_selection import train_test_split
     from sklearn.ensemble import RandomForestClassifier
+    from sklearn.ensemble import GradientBoostingClassifier
+    from sklearn.neighbors import KNeighborsClassifier
     from sklearn.preprocessing import MinMaxScaler, StandardScaler
+    from sklearn.feature_selection import SequentialFeatureSelector as SFS
     from sklearn import svm
+    from sklearn.preprocessing import LabelEncoder
     from sklearn.dummy import DummyClassifier
     from sklearn.neural_network import MLPClassifier
+    from xgboost import XGBClassifier
     from sklearn.metrics import accuracy_score, classification_report
 
-    i = 0
+    i = 1
+    le = LabelEncoder()
     X, y = features.prepare_xy(data[species[i]], class_col=CLASS_COL)
+    y_enc = le.fit_transform(y)
 
-    X_train, X_test, y_train, y_test = train_test_split(X, y,
+    X_train, X_test, y_train, y_test = train_test_split(X, y_enc,
         test_size=0.2, random_state=7
     )
     minmax = MinMaxScaler()
@@ -343,6 +350,25 @@ def run_classification():
     rf.fit(X_train, y_train)
     y_pred = rf.predict(X_test)
 
+    knn = KNeighborsClassifier(n_neighbors=11,)
+    knn.fit(X_train_minmax, y_train)
+    knn_pred = knn.predict(X_test_minmax)
+
+    gb = GradientBoostingClassifier()
+    gb.fit(X_train_minmax, y_train)
+    gb_pred = gb.predict(X_test_minmax)
+
+    xgb = XGBClassifier()
+    xgb.fit(X_train_minmax, y_train)
+    xgb_pred = xgb.predict(X_test_minmax)
+
+    # sfs = SFS(
+        # estimator=rf,
+        # n_features_to_select="auto"
+    # )
+    # sfs.fit(X_train_minmax, y_train)
+    # print(sfs.get_support())
+
     dummy = DummyClassifier(strategy="prior", random_state=23)
     dummy.fit(X=X_train_minmax, y=y_train)
     dummy_pred = dummy.predict(X_test_minmax)
@@ -354,6 +380,20 @@ def run_classification():
     print("Random forest")
     print("accuracy", accuracy_score(y_true=y_test, y_pred=y_pred))
     print(classification_report(y_true=y_test, y_pred=y_pred, digits=4, zero_division=0))
+
+    print("KNN")
+    print("accuracy", accuracy_score(y_true=knn_pred, y_pred=y_pred))
+    print(classification_report(y_true=knn_pred, y_pred=y_pred, digits=4, zero_division=0))
+
+    print("Gradient Boosting")
+    print("accuracy", accuracy_score(y_true=gb_pred, y_pred=y_pred))
+    print(classification_report(y_true=gb_pred, y_pred=y_pred, digits=4, zero_division=0))
+
+    print("X Gradient Boosting")
+    print("accuracy", accuracy_score(y_true=xgb_pred, y_pred=y_pred))
+    print(classification_report(y_true=xgb_pred, y_pred=y_pred, digits=4, zero_division=0))
+
+
     # print(accuracy_score(y_true=y_test, y_pred=svm_pred))
     # print(classification_report(y_true=y_test, y_pred=svm_pred, digits=4))
     # print(accuracy_score(y_true=y_test, y_pred=nn_pred))
