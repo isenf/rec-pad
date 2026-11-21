@@ -21,18 +21,6 @@ from sklearn.metrics import (
 from rec_pad import features, io, helpers
 
 
-def split_data(
-    X: pd.DataFrame,
-    y: pd.Series,
-    test_size:float=0.2,
-    random_state:int=23
-):
-    X_train, X_test, y_train, y_test = train_test_split(
-        X, y, test_size=test_size, random_state=random_state, stratify=y
-    )
-    return X_train, X_test, y_train, y_test
-
-
 def _evaluate(
     specie: str,
     classifier_name: str,
@@ -72,3 +60,53 @@ def _evaluate(
         "f1_macro": f1_mac, 
         "f1_weighted": f1_wgt
     }
+
+
+def _models_and_grids(
+    seed:int=23
+):
+    knn_pipe = Pipeline([
+        ("scaler", MinMaxScaler()),
+        ("model", KNeighborsClassifier())
+    ])
+    knn_grid = {
+        "model__n_neighbors": [3, 5, 7, 11, 15, 21],
+        "model__weights": ["uniform", "distance"],
+        "model__p": [1, 2]
+    }
+    gb_pipe = Pipeline([
+        ("scaler", MinMaxScaler()),
+        ("model", GradientBoostingClassifier(random_state=seed))
+    ])
+    gb_grid = {
+        "model__n_estimators": [100, 200, 400],
+        "model__learning_rate": [0.05, 0.1, 0.2],
+        "model__max_depth": [2, 3, 4],
+        "model__subsample": [0.8, 1.0],
+        "model__min_samples_leaf": [1, 5]
+    }
+
+    return [
+        ("kNN", knn_pipe, knn_grid),
+        ("GradientBoosting", gb_pipe, gb_grid)
+    ]
+
+
+def _encode_y(
+    y: pd.Series|np.ndarray
+) -> tuple[np.ndarray, LabelEncoder]:
+    le = LabelEncoder()
+    y_enc = le.fit_transform(y)
+    return y_enc, le
+
+
+def split_data(
+    X: pd.DataFrame,
+    y: pd.Series,
+    test_size:float=0.2,
+    random_state:int=23
+):
+    X_train, X_test, y_train, y_test = train_test_split(
+        X, y, test_size=test_size, random_state=random_state, stratify=y
+    )
+    return X_train, X_test, y_train, y_test
