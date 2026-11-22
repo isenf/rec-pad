@@ -2,6 +2,7 @@ import pandas as pd
 from pathlib import Path
 from matplotlib.figure import Figure
 from matplotlib.axes import Axes
+import joblib
 import os
 
 
@@ -97,3 +98,33 @@ def save_fig(
     path = _make_dir(path=path)
     fig.savefig(fname=f"{path}/{file_name}", dpi=dpi)
 
+
+def save_classifier(
+    estimator,
+    out_dir: str|Path,
+    specie: str,
+    classifier_name: str,
+    tag: str,
+    labels: list[str]|None=None,
+    best_params: dict|None=None,
+    metrics: dict|None=None,
+) -> Path:
+    out_dir = Path(out_dir)/classifier_name/tag
+    _make_dir(path=out_dir)
+    path = f"{out_dir}/{specie}.sav"
+    joblib.dump({
+        "model": estimator,
+        "specie": specie,
+        "classifier_name": classifier_name,
+        "tag": tag,
+        "labels": labels,
+        "best_params": best_params,
+        "metrics": metrics
+    }, path, compress=3)
+    return path
+
+
+def load_classifier(
+    path: str|Path
+) -> dict:
+    return joblib.load(Path(path))
