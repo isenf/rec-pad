@@ -27,7 +27,7 @@ def _evaluate(
     y_true: np.ndarray,
     y_pred: np.ndarray,
     labels: list[str],
-    out_dir: Path
+    out_dir: str
 ) -> dict:
     acc = accuracy_score(y_true=y_true, y_pred=y_pred)
     f1_mac = f1_score(y_true=y_true, y_pred=y_pred, average="macro", zero_division=0)
@@ -38,7 +38,7 @@ def _evaluate(
     print(f"f1 weighted: {f1_wgt}")
     print(classification_report(y_true=y_true, y_pred=y_pred, target_names=labels,
                                 digits=4, zero_division=0))
-    cm = confusion_matrix(y_true=y_true, y_pred=y_pred, labels=labels)
+    cm = confusion_matrix(y_true, y_pred, labels=list(range(len(labels))))
     cm_df = pd.DataFrame(
         cm, index=[f"true_{l}" for l in labels], columns=[f"pred_{l}" for l in labels]
     )
@@ -65,6 +65,8 @@ def _evaluate(
 def _models_and_grids(
     seed:int=23
 ):
+    dummy = DummyClassifier(strategy="prior", random_state=seed)
+    dummy_grid = {}
     knn_pipe = Pipeline([
         ("scaler", MinMaxScaler()),
         ("model", KNeighborsClassifier())
@@ -87,6 +89,7 @@ def _models_and_grids(
     }
 
     return [
+        ("Dummy", dummy, dummy_grid),
         ("kNN", knn_pipe, knn_grid),
         ("GradientBoosting", gb_pipe, gb_grid)
     ]
@@ -100,6 +103,30 @@ def _encode_y(
     return y_enc, le
 
 
+def _prepare_species_data(
+    data: dict,
+    species: list[str],
+    class_col: str="CLASS",
+    test_size: float=0.2,
+    seed:int=23
+) -> dict:
+    prepared = {}
+    for specie in species:
+        X, y = features.prepare_xy(data[specie], class_col=class_col)
+        y_enc, le = _encode_y(y)
+        X_train, X_test, y_train, y_test = split_data(
+            X, y_enc, test_size=test_size, random_state=seed
+        )
+        prepared[specie] = {
+            "X_train": X_train,
+            "X_test": X_test,
+            "y_train": y_train,
+            "y_test": y_test,
+            "labels": list(le.classes_)
+        }
+    return prepared
+
+
 def split_data(
     X: pd.DataFrame,
     y: pd.Series,
@@ -110,3 +137,49 @@ def split_data(
         X, y, test_size=test_size, random_state=random_state, stratify=y
     )
     return X_train, X_test, y_train, y_test
+
+
+def run_all_models_species(
+    data: dict,
+    species: list[str],
+    out_dir: str,
+    class_col: str="CLASS",
+    scoring: str="f1_weighted",
+    test_size: float=0.2,
+    cv:int=10,
+    seed: int = 23,
+    tag: str="all"
+) -> pd.DataFrame:
+    prepared = _prepare_species_data(
+        data=data, species=species, class_col=class_col, test_size=test_size,
+        seed=seed
+    )
+    all_results = []
+
+    for classifier_name, pipe, grid in _models_and_grids(seed=seed):
+        for specie in species:
+            d = prepared[specie]
+            gs = GridSearchCV(
+                estimator=pipe, param_grid=grid, scoring=scoring, cv=cv,
+                n_jobs=-1, refit=True
+            )
+            gs.fit(d["X_train"], d["y_train"])
+
+            fold_scores = cross_val_score(
+                gs.best_estimator_, d["X_train"], d["y_train"],
+                cv=cv, scoring=scoring, n_jobs=-1
+            )
+
+            y_pred = gs.predict(d["X_test"])
+            res = _evaluate(
+                specie, classifier_name, d["y_test"], y_pred=y_pred,
+                labels=d["labels"], out_dir=f"{out_dir}/{classifier_name}/{tag}"
+            )
+            res["feature_set"] = tag
+            res["n_features"] =d["X_train"].shape[1]
+            res["cv_mean"] = fold_scores.mean()
+            res["cv_std"] = fold_scores.std()
+            res["best_params"] = gs.best_params_ if grid else "default"
+            all_results.append(res)
+    
+    return pd.DataFrame(all_results)
