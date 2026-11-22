@@ -3,22 +3,23 @@ import numpy as np
 from pathlib import Path
 import matplotlib.pyplot as plt
 from sklearn.model_selection import (
-    train_test_split, cross_val_score, GridSearchCV
+    train_test_split, cross_val_score, GridSearchCV, RandomizedSearchCV
 )
 from sklearn.ensemble import GradientBoostingClassifier, RandomForestClassifier
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.preprocessing import MinMaxScaler, StandardScaler
 from mlxtend.feature_selection import SequentialFeatureSelector as SFS    
 from sklearn.pipeline import Pipeline
+from sklearn.base import clone
 from sklearn.preprocessing import LabelEncoder
 from sklearn.dummy import DummyClassifier
 from sklearn.neural_network import MLPClassifier
 from xgboost import XGBClassifier
 from sklearn.metrics import (
-    accuracy_score, classification_report, f1_score, confusion_matrix, ConfusionMatrixDisplay
+    accuracy_score, classification_report, f1_score, confusion_matrix, roc_auc_score
 )
 
-from rec_pad import features, io, helpers
+from rec_pad import features, io, helpers, plots
 
 
 def _evaluate(
@@ -27,15 +28,18 @@ def _evaluate(
     y_true: np.ndarray,
     y_pred: np.ndarray,
     labels: list[str],
+    y_proba: np.ndarray|None,
     out_dir: str
 ) -> dict:
     acc = accuracy_score(y_true=y_true, y_pred=y_pred)
     f1_mac = f1_score(y_true=y_true, y_pred=y_pred, average="macro", zero_division=0)
+    roc_auc = roc_auc_score(y_true, y_proba[:, 1])
     f1_wgt = f1_score(y_true=y_true, y_pred=y_pred, average="weighted", zero_division=0)
     print(f"\n{classifier_name} - {specie}")
     print(f"accuracy: {acc}")
     print(f"f1 macro: {f1_mac}")
     print(f"f1 weighted: {f1_wgt}")
+    print(f"roc auc: {roc_auc}")
     print(classification_report(y_true=y_true, y_pred=y_pred, target_names=labels,
                                 digits=4, zero_division=0))
     cm = confusion_matrix(y_true, y_pred, labels=list(range(len(labels))))
@@ -47,18 +51,18 @@ def _evaluate(
     if out_dir is not None:
         out_dir = Path(out_dir)
         # io._make_dir(path=out_dir)
-        fig, ax = plt.subplots(figsize=(5, 4))
-        ConfusionMatrixDisplay(cm, display_labels=labels).plot(
-            ax=ax, cmap="Blues", values_format="d"
+        fig = plots.plot_matrix(
+            cm, row_labels=labels, col_labels=labels, title=f"Confusion Matrix - {specie}",
+             x_label="Predicted class", y_label="True class"
         )
-        ax.set_title(f"{classifier_name} - {specie}")
-        fig.tight_layout()
         helpers.save_and_close(fig, subdir=out_dir, file_name=f"{specie}.jpg")
     return {
         "specie": specie,
+        "classifier": classifier_name,
         "accuracy": acc,
         "f1_macro": f1_mac, 
-        "f1_weighted": f1_wgt
+        "f1_weighted": f1_wgt,
+        "roc_auc": roc_auc
     }
 
 
@@ -163,27 +167,37 @@ def run_all_models_species(
     for classifier_name, pipe, grid in _models_and_grids(seed=seed):
         for specie in species:
             d = prepared[specie]
-            gs = GridSearchCV(
-                estimator=pipe, param_grid=grid, scoring=scoring, cv=cv,
-                n_jobs=-1, refit=True
-            )
-            gs.fit(d["X_train"], d["y_train"])
-
+            if not grid:
+                fitted = clone(pipe).fit(d["X_train"], d["y_train"])
+                best_params = {}
+            else:
+                gs = RandomizedSearchCV(
+                    estimator=pipe, param_distributions=grid, scoring=scoring, cv=cv,
+                    n_jobs=-1, refit=True, n_iter=20, random_state=seed
+                )
+                gs.fit(d["X_train"], d["y_train"])
+                fitted = gs.best_estimator_
+                best_params = gs.best_params_
             fold_scores = cross_val_score(
-                gs.best_estimator_, d["X_train"], d["y_train"],
+                fitted, d["X_train"], d["y_train"],
                 cv=cv, scoring=scoring, n_jobs=-1
             )
 
-            y_pred = gs.predict(d["X_test"])
+            y_pred = fitted.predict(d["X_test"])
+            y_proba = fitted.predict_proba(d["X_test"])
             res = _evaluate(
-                specie, classifier_name, d["y_test"], y_pred=y_pred,
-                labels=d["labels"], out_dir=f"{out_dir}/{classifier_name}/{tag}"
+                specie, classifier_name, d["y_test"], y_pred=y_pred, y_proba=y_proba,
+                labels=d["labels"], out_dir=f"classification/{classifier_name}/{tag}"
             )
             res["feature_set"] = tag
             res["n_features"] =d["X_train"].shape[1]
             res["cv_mean"] = fold_scores.mean()
             res["cv_std"] = fold_scores.std()
-            res["best_params"] = gs.best_params_ if grid else "default"
+            res["best_params"] = best_params
+            io.save_classifier(
+                estimator=fitted, out_dir=out_dir, specie=specie,
+                classifier_name=classifier_name, tag=tag, labels=d["labels"], 
+                metrics=res)
             all_results.append(res)
     
     return pd.DataFrame(all_results)
