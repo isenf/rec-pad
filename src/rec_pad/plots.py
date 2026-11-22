@@ -718,25 +718,15 @@ def plot_posterior(
     return fig
 
 
-def plot_contingency_matrix(
-    y_true: np.ndarray|pd.Series,
-    labels: np.ndarray|pd.Series,
+def plot_matrix(
+    cm: np.ndarray|pd.DataFrame,
+    row_labels: list,
+    col_labels: list,
+    x_label: str ="Predicted Class",
+    y_label:str="True class",
     title:str = "Contingency Matrix",
-    true_labels_names=None,
     normalize_by: str|None=None
 ):
-    """
-    
-    """
-    cm = contingency_matrix(y_true, labels)
-    if true_labels_names is not None:
-        row_labels = true_labels_names
-    else:
-        row_labels = [f"class {c}" for c in np.unique(y_true)]
-    col_unique = sorted(np.unique(labels))
-    offset = 1 - col_unique[0]
-    col_labels = [f"cluster {c+offset}" for c in col_unique]
-
     if normalize_by == "row":
         row_sums = cm.sum(axis=1)[:, np.newaxis]
         cm = np.divide(cm.astype("float"), row_sums, 
@@ -748,7 +738,7 @@ def plot_contingency_matrix(
         cm = np.divide(cm.astype("float"), col_sums, 
                        out=np.zeros_like(cm, dtype=float), where=col_sums!=0)
         fmt = ".4%"
-        cbar_label = "proportion of cluster"
+        cbar_label = "proportion of predicted"
     elif normalize_by == "all":
         total_sum = cm.sum()
         cm = np.divide(cm.astype("float"), total_sum, 
@@ -771,8 +761,8 @@ def plot_contingency_matrix(
                 cbar_kws={"label": cbar_label}
                 )
     ax.set_title(title)
-    ax.set_ylabel("RNA class")
-    ax.set_xlabel("clusters")
+    ax.set_ylabel(y_label)
+    ax.set_xlabel(x_label)
     return fig
 
 

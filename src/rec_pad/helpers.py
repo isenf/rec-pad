@@ -105,12 +105,12 @@ def run_hiearchical(
                 X=X, labels=labels, y_true=y_enc
             )
             if path_output is not None:
-                fig = plots.plot_contingency_matrix(y_true=y_enc, 
-                                                     labels=labels, 
-                                                     true_labels_names=np.unique(y),
-                                                     title=f"Contingency Matrix - {metric} {scale_type}",
-                                                     normalize_by="col"
-                                                     )
+                cm = clustering.contingency_matrix(y_enc, labels)
+                fig = plots.plot_matrix(
+                    cm, row_labels=np.unique(y), col_labels=["cluster 1", "cluster 2"],
+                    title=f"Contingency Matrix - {metric} {scale_type}", normalize_by="col",
+                    y_label="RNA class", x_label="clusters"
+                )
                 save_and_close(fig=fig, path_output=path_output, 
                                 subdir=f"clustering/hierarchical/contingency_matrix/normalized_col/{metric}/{scale_type}",
                                 file_name=f"{specie}.jpg")
@@ -148,12 +148,10 @@ def run_kmeans(
                 X=X, labels=labels, y_true=y_enc
             )
             if path_output is not None:
-                 fig = plots.plot_contingency_matrix(y_true=y_enc, 
-                                                     labels=labels, 
-                                                     true_labels_names=np.unique(y),
-                                                     title=f"Contingency Matrix - {scale_type}",
-                                                     normalize_by="col"
-                                                     )
+                 cm = clustering.contingency_matrix(y_enc, labels)
+                 fig = plots.plot_matrix(
+                     cm, row_labels=np.unique(y), col_labels=["cluster 1", "cluster 2"],
+                     title=f"Contingency Matrix - {scale_type}", normalize_by="col")
                  save_and_close(fig=fig, path_output=path_output, 
                                 subdir=f"clustering/kmeans/contingency_matrix/normalized_col/{scale_type}",
                                 file_name=f"{specie}.jpg")
