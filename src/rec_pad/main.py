@@ -8,7 +8,8 @@ from rec_pad import (
     proba,
     stats,
     helpers, 
-    clustering
+    clustering,
+    classification
 )
 
 from pathlib import Path
@@ -311,93 +312,26 @@ def run_clustering(data, species):
 
 def run_classification():
     data, species = load_and_preprocess_data()
-
-    from sklearn.model_selection import train_test_split
-    from sklearn.ensemble import RandomForestClassifier
-    from sklearn.ensemble import GradientBoostingClassifier
-    from sklearn.neighbors import KNeighborsClassifier
-    from sklearn.preprocessing import MinMaxScaler, StandardScaler
-    from sklearn.feature_selection import SequentialFeatureSelector as SFS
-    from sklearn import svm
-    from sklearn.preprocessing import LabelEncoder
-    from sklearn.dummy import DummyClassifier
-    from sklearn.neural_network import MLPClassifier
-    from xgboost import XGBClassifier
-    from sklearn.metrics import accuracy_score, classification_report
-
-    i = 1
-    le = LabelEncoder()
-    X, y = features.prepare_xy(data[species[i]], class_col=CLASS_COL)
-    y_enc = le.fit_transform(y)
-
-    X_train, X_test, y_train, y_test = train_test_split(X, y_enc,
-        test_size=0.2, random_state=7
+    df_all = classification.run_all_models_species(
+            data=data, species=species, class_col=CLASS_COL,
+            out_dir=Path(PATH_OUTPUT)/"classification", scoring="f1_weighted", 
+            test_size=0.2, cv=10, seed=23, tag="all"
+        )
+    data, votes = features.select_features(
+        data,     
+        threshold=0.8,
+        class_col=CLASS_COL,
+        min_votes=len(data)-1,
+        return_votes=True
     )
-    minmax = MinMaxScaler()
-    X_train_minmax = minmax.fit_transform(X_train)
-    X_test_minmax = minmax.transform(X_test)
-    scaler = StandardScaler()
-    X_train_scaled = scaler.fit_transform(X_train)
-    X_test_scaled = scaler.transform(X_test)
-    # SVM = svm.SVC(kernel="rbf")
-    # nn = MLPClassifier(random_state=23)
-    # nn.fit(X_train_scaled, y_train)
-    # nn_pred = nn.predict(X_test_scaled)
+    df_selected = classification.run_all_models_species(
+        data=data, species=species, class_col=CLASS_COL,
+        out_dir=Path(PATH_OUTPUT)/"classification", scoring="f1_weighted", 
+        test_size=0.2, cv=10, seed=23, tag="selected"
+    )
 
-    # SVM.fit(X_train_scaled, y_train)
-    # svm_pred = SVM.predict(X_test_scaled)
-    rf = RandomForestClassifier(n_estimators=100, random_state=7)
-    rf.fit(X_train, y_train)
-    y_pred = rf.predict(X_test)
-
-    knn = KNeighborsClassifier(n_neighbors=11,)
-    knn.fit(X_train_minmax, y_train)
-    knn_pred = knn.predict(X_test_minmax)
-
-    gb = GradientBoostingClassifier()
-    gb.fit(X_train_minmax, y_train)
-    gb_pred = gb.predict(X_test_minmax)
-
-    xgb = XGBClassifier()
-    xgb.fit(X_train_minmax, y_train)
-    xgb_pred = xgb.predict(X_test_minmax)
-
-    # sfs = SFS(
-        # estimator=rf,
-        # n_features_to_select="auto"
-    # )
-    # sfs.fit(X_train_minmax, y_train)
-    # print(sfs.get_support())
-
-    dummy = DummyClassifier(strategy="prior", random_state=23)
-    dummy.fit(X=X_train_minmax, y=y_train)
-    dummy_pred = dummy.predict(X_test_minmax)
-
-    print("Dummy classifier - Base error")
-    print("accuracy", accuracy_score(y_true=dummy_pred, y_pred=y_pred))
-    print(classification_report(y_true=dummy_pred, y_pred=y_pred, digits=4, zero_division=0))
-
-    print("Random forest")
-    print("accuracy", accuracy_score(y_true=y_test, y_pred=y_pred))
-    print(classification_report(y_true=y_test, y_pred=y_pred, digits=4, zero_division=0))
-
-    print("KNN")
-    print("accuracy", accuracy_score(y_true=knn_pred, y_pred=y_pred))
-    print(classification_report(y_true=knn_pred, y_pred=y_pred, digits=4, zero_division=0))
-
-    print("Gradient Boosting")
-    print("accuracy", accuracy_score(y_true=gb_pred, y_pred=y_pred))
-    print(classification_report(y_true=gb_pred, y_pred=y_pred, digits=4, zero_division=0))
-
-    print("X Gradient Boosting")
-    print("accuracy", accuracy_score(y_true=xgb_pred, y_pred=y_pred))
-    print(classification_report(y_true=xgb_pred, y_pred=y_pred, digits=4, zero_division=0))
-
-
-    # print(accuracy_score(y_true=y_test, y_pred=svm_pred))
-    # print(classification_report(y_true=y_test, y_pred=svm_pred, digits=4))
-    # print(accuracy_score(y_true=y_test, y_pred=nn_pred))
-    # print(classification_report(y_true=y_test, y_pred=nn_pred, digits=4))
+    df_selected.to_csv("selected.csv", index=False)
+    df_all.to_csv("df_all.csv", index=False)
 
 run_classification()
 
