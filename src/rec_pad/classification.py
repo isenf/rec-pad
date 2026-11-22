@@ -3,9 +3,9 @@ import numpy as np
 from pathlib import Path
 import matplotlib.pyplot as plt
 from sklearn.model_selection import (
-    train_test_split, cross_val_score, GridSearchCV, StratifiedKFold
+    train_test_split, cross_val_score, GridSearchCV
 )
-from sklearn.ensemble import GradientBoostingClassifier
+from sklearn.ensemble import GradientBoostingClassifier, RandomForestClassifier
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.preprocessing import MinMaxScaler, StandardScaler
 from mlxtend.feature_selection import SequentialFeatureSelector as SFS    
@@ -32,7 +32,7 @@ def _evaluate(
     acc = accuracy_score(y_true=y_true, y_pred=y_pred)
     f1_mac = f1_score(y_true=y_true, y_pred=y_pred, average="macro", zero_division=0)
     f1_wgt = f1_score(y_true=y_true, y_pred=y_pred, average="weighted", zero_division=0)
-    print(f"{classifier_name} - {specie}")
+    print(f"\n{classifier_name} - {specie}")
     print(f"accuracy: {acc}")
     print(f"f1 macro: {f1_mac}")
     print(f"f1 weighted: {f1_wgt}")
@@ -46,7 +46,7 @@ def _evaluate(
     print(cm_df)
     if out_dir is not None:
         out_dir = Path(out_dir)
-        io._make_dir(path=out_dir)
+        # io._make_dir(path=out_dir)
         fig, ax = plt.subplots(figsize=(5, 4))
         ConfusionMatrixDisplay(cm, display_labels=labels).plot(
             ax=ax, cmap="Blues", values_format="d"
@@ -67,15 +67,19 @@ def _models_and_grids(
 ):
     dummy = DummyClassifier(strategy="prior", random_state=seed)
     dummy_grid = {}
-    knn_pipe = Pipeline([
+
+    rf_pipe = Pipeline([
         ("scaler", MinMaxScaler()),
-        ("model", KNeighborsClassifier())
+        ("model", RandomForestClassifier(random_state=seed))
     ])
-    knn_grid = {
-        "model__n_neighbors": [3, 5, 7, 11, 15, 21],
-        "model__weights": ["uniform", "distance"],
-        "model__p": [1, 2]
+    rf_grid = {
+        "model__n_estimators": [100, 300, 500],
+        "model__max_depth": [None, 5, 10, 20],
+        "model__min_samples_split": [2, 5, 10],
+        "model__min_samples_leaf": [1, 2, 4],
+        "model__max_features": ["sqrt", "log2", 0.5]
     }
+
     gb_pipe = Pipeline([
         ("scaler", MinMaxScaler()),
         ("model", GradientBoostingClassifier(random_state=seed))
@@ -90,7 +94,7 @@ def _models_and_grids(
 
     return [
         ("Dummy", dummy, dummy_grid),
-        ("kNN", knn_pipe, knn_grid),
+        ("RandomForest", rf_pipe, rf_grid),
         ("GradientBoosting", gb_pipe, gb_grid)
     ]
 
