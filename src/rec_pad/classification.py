@@ -66,42 +66,41 @@ def _evaluate(
     }
 
 
-def _models_and_grids(
-    seed:int=23
-):
-    dummy = DummyClassifier(strategy="prior", random_state=seed)
-    dummy_grid = {}
-
-    rf_pipe = Pipeline([
-        ("scaler", MinMaxScaler()),
-        ("model", RandomForestClassifier(random_state=seed))
-    ])
-    rf_grid = {
-        "model__n_estimators": [100, 300, 500],
-        "model__max_depth": [None, 5, 10, 20],
-        "model__min_samples_split": [2, 5, 10],
-        "model__min_samples_leaf": [1, 2, 4],
-        "model__max_features": ["sqrt", "log2", 0.5]
-    }
-
-    gb_pipe = Pipeline([
-        ("scaler", MinMaxScaler()),
-        ("model", GradientBoostingClassifier(random_state=seed))
-    ])
-    gb_grid = {
-        "model__n_estimators": [100, 200, 400],
-        "model__learning_rate": [0.05, 0.1, 0.2],
-        "model__max_depth": [2, 3, 4],
-        "model__subsample": [0.8, 1.0],
-        "model__min_samples_leaf": [1, 5]
-    }
-
-    return [
-        ("Dummy", dummy, dummy_grid),
-        ("RandomForest", rf_pipe, rf_grid),
-        ("GradientBoosting", gb_pipe, gb_grid)
+def _models_and_params(
+    seed=23
+) -> dict:
+    configs = [
+        {
+            "name": "Dummy",
+            "estimator": DummyClassifier(strategy="prior", random_state=seed),
+            "params": {}
+        },
+        {
+            "name": "RandomForest",
+            "estimator": Pipeline([
+                ("scaler", MinMaxScaler()),
+                ("model", RandomForestClassifier(random_state=seed, n_jobs=-1))
+                ]),
+            "params": {
+                "model__n_estimators": 300,
+                "model__criterion": "entropy" 
+            }
+        },
+        {
+            "name": "GradientBoosting",
+            "estimator": Pipeline([
+                ("scaler", MinMaxScaler()),
+                ("model", GradientBoostingClassifier(random_state=seed))
+            ]),
+            "params": {
+                "model__subsample": 0.8, 
+                "model__n_estimators": 200,
+                "model__max_depth": 3, 
+                "model__learning_rate": 0.1
+            }
+        }
     ]
-
+    return configs
 
 def _encode_y(
     y: pd.Series|np.ndarray
@@ -164,24 +163,20 @@ def run_all_models_species(
     )
     all_results = []
 
-    for classifier_name, pipe, grid in _models_and_grids(seed=seed):
+    for config in _models_and_params(seed=seed):
+        classifier_name = config["name"]
+        pipe = config["estimator"]
+        params = config["params"]
         for specie in species:
             d = prepared[specie]
-            if not grid:
-                fitted = clone(pipe).fit(d["X_train"], d["y_train"])
-                best_params = {}
-            else:
-                gs = RandomizedSearchCV(
-                    estimator=pipe, param_distributions=grid, scoring=scoring, cv=cv,
-                    n_jobs=-1, refit=True, n_iter=20, random_state=seed
-                )
-                gs.fit(d["X_train"], d["y_train"])
-                fitted = gs.best_estimator_
-                best_params = gs.best_params_
+            fitted = clone(pipe)
+            if params:
+                fitted.set_params(**params)
             fold_scores = cross_val_score(
                 fitted, d["X_train"], d["y_train"],
                 cv=cv, scoring=scoring, n_jobs=-1
             )
+            fitted.fit(d["X_train"], d["y_train"])
 
             y_pred = fitted.predict(d["X_test"])
             y_proba = fitted.predict_proba(d["X_test"])
@@ -193,7 +188,7 @@ def run_all_models_species(
             res["n_features"] =d["X_train"].shape[1]
             res["cv_mean"] = fold_scores.mean()
             res["cv_std"] = fold_scores.std()
-            res["best_params"] = best_params
+            res["params"] = params
             io.save_classifier(
                 estimator=fitted, out_dir=out_dir, specie=specie,
                 classifier_name=classifier_name, tag=tag, labels=d["labels"], 
