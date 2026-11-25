@@ -1,20 +1,15 @@
 import pandas as pd
 import numpy as np
 from pathlib import Path
-import matplotlib.pyplot as plt
 from sklearn.model_selection import (
-    train_test_split, cross_val_score, GridSearchCV, RandomizedSearchCV
+    train_test_split, cross_val_score
 )
 from sklearn.ensemble import GradientBoostingClassifier, RandomForestClassifier
-from sklearn.neighbors import KNeighborsClassifier
-from sklearn.preprocessing import MinMaxScaler, StandardScaler
-from mlxtend.feature_selection import SequentialFeatureSelector as SFS    
+from sklearn.preprocessing import MinMaxScaler
 from sklearn.pipeline import Pipeline
 from sklearn.base import clone
 from sklearn.preprocessing import LabelEncoder
 from sklearn.dummy import DummyClassifier
-from sklearn.neural_network import MLPClassifier
-from xgboost import XGBClassifier
 from sklearn.metrics import (
     accuracy_score, classification_report, f1_score, confusion_matrix, roc_auc_score
 )
@@ -79,7 +74,7 @@ def _models_and_params(
             "name": "RandomForest",
             "estimator": Pipeline([
                 ("scaler", MinMaxScaler()),
-                ("model", RandomForestClassifier(random_state=seed, n_jobs=-1))
+                ("model", RandomForestClassifier(random_state=seed, n_jobs=-2))
                 ]),
             "params": {
                 "model__n_estimators": 300,
@@ -101,6 +96,7 @@ def _models_and_params(
         }
     ]
     return configs
+
 
 def _encode_y(
     y: pd.Series|np.ndarray
