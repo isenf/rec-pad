@@ -6,7 +6,6 @@ from matplotlib.axes import Axes
 from matplotlib.figure import Figure
 from typing import Literal
 from pandas.plotting import parallel_coordinates
-from sklearn.metrics.cluster import contingency_matrix
 from sklearn.metrics import silhouette_score
 from scipy.cluster.hierarchy import dendrogram
 
@@ -854,3 +853,17 @@ def plot_dendrogram(
     ax.grid(True, alpha=0.3, axis="y")
 
     return ax
+
+
+def boxplot_cv(
+    means_species: dict,
+    title: str,
+    figsize: tuple[float, float] = (10, 6),
+    ax: Axes|None=None
+) -> Figure:
+    if ax is None:
+        fig, ax = plt.subplots(figsize=figsize)
+    ax.boxplot(means_species.values())
+    ax.set_xticks([i+1 for i in range(len(means_species.keys()))], means_species.keys())
+    return fig
+

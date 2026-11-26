@@ -160,6 +160,7 @@ def run_all_models_species(
     all_results = []
 
     for config in _models_and_params(seed=seed):
+        means_species = {}
         classifier_name = config["name"]
         pipe = config["estimator"]
         params = config["params"]
@@ -179,7 +180,8 @@ def run_all_models_species(
                 cv=cv, scoring=scoring, n_jobs=-1
             )
             fitted.fit(d["X_train"], d["y_train"])
-
+            # print(fold_scores)
+            means_species[specie] = fold_scores
             y_pred = fitted.predict(d["X_test"])
             y_proba = fitted.predict_proba(d["X_test"])
             res = _evaluate(
@@ -196,5 +198,8 @@ def run_all_models_species(
                 classifier_name=classifier_name, tag=tag, labels=d["labels"], 
                 metrics=res)
             all_results.append(res)
-    
+        fig = plots.boxplot_cv(means_species, f"Cross Validation - {classifier_name}")
+        helpers.save_and_close(
+            fig=fig, subdir=f"classification/boxplots_cv/{tag}", file_name=f"{classifier_name}.jpg"
+        )   
     return pd.DataFrame(all_results)
