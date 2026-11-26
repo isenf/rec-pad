@@ -99,6 +99,28 @@ def save_fig(
     fig.savefig(fname=f"{path}/{file_name}", dpi=dpi)
 
 
+def save_data(
+    data: pd.DataFrame,
+    path: str|Path,
+    file_name: str
+) -> None:
+    _make_dir(path=path)
+    path = Path(path)
+    data.to_csv(path/f"{file_name}.csv", index=False)
+
+
+def load_data(
+    path: Path|str,
+    file_format: str
+) -> pd.DataFrame:
+    if file_format == "csv":
+        return pd.read_csv(path)
+    elif file_format == "parquet":
+        return pd.read_parquet(path)
+    else: 
+        return None
+
+
 def save_classifier(
     estimator,
     out_dir: str|Path,

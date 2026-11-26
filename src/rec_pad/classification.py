@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 from pathlib import Path
 from sklearn.model_selection import (
-    train_test_split, cross_val_score
+    train_test_split, cross_val_score, StratifiedKFold
 )
 from sklearn.ensemble import GradientBoostingClassifier, RandomForestClassifier
 from sklearn.preprocessing import MinMaxScaler
@@ -168,6 +168,12 @@ def run_all_models_species(
             fitted = clone(pipe)
             if params:
                 fitted.set_params(**params)
+            df_train = d["X_train"].copy()
+            df_train[class_col] = d["y_train"]
+            io.save_data(data=df_train, path=out_dir/"data"/tag, file_name=f"train_{specie}")
+            df_test = d["X_test"].copy()
+            df_test[class_col] = d["y_test"]
+            io.save_data(data=df_train, path=out_dir/"data"/tag, file_name=f"test_{specie}")
             fold_scores = cross_val_score(
                 fitted, d["X_train"], d["y_train"],
                 cv=cv, scoring=scoring, n_jobs=-1
