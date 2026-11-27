@@ -865,5 +865,6 @@ def boxplot_cv(
         fig, ax = plt.subplots(figsize=figsize)
     ax.boxplot(means_species.values())
     ax.set_xticks([i+1 for i in range(len(means_species.keys()))], means_species.keys())
+    ax.set_title(title)
     return fig
 
