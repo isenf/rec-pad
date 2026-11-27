@@ -330,8 +330,8 @@ def run_classification():
         test_size=0.2, cv=10, seed=23, tag="selected"
     )
 
-    df_selected.to_csv("selected.csv", index=False)
-    df_all.to_csv("df_all.csv", index=False)
+    df_selected.to_csv(PATH_OUTPUT/"classification/selected.csv", index=False)
+    df_all.to_csv(PATH_OUTPUT/"classification/df_all.csv", index=False)
 
 run_classification()
 
